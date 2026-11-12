@@ -1,0 +1,23 @@
+OM-3 Native Minigames
+Copyright 2026 <YOUR NAME OR ORGANIZATION>
+
+This repository contains only the native minigame modules and their
+build/packaging layer for the OM SYSTEM OM-3 (firmware 1.1). It does not
+include any OM Digital Solutions / Olympus firmware, and it does not include the
+upstream firmware-modification project.
+
+Dependencies (referenced by name; not part of this repository):
+
+- Caduceus for OM-3, v0.26.2 (Apache License 2.0, Copyright 2026 androidfanman),
+  derived from Caduceus (cakelesscoder/caduceus-ep7, Apache-2.0). See
+  https://github.com/androidfanman/caduceus-om3. Pinned at commit f4d2569.
+  This project's game code builds on top of that pinned baseline; the Caduceus
+  source itself is obtained separately and lives outside this repository.
+
+- The official OM-3 firmware 1.1 file, supplied by the user. The combined
+  (patched) image and the stock restore image are both produced from it during
+  the build. Manufacturer firmware is never redistributed by this repository.
+
+"OM SYSTEM", "Olympus" and "OM-3" are trademarks of their respective owners.
+This project is not affiliated with OM Digital Solutions. Use modified firmware
+at your own risk.

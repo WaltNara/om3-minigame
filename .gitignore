@@ -1,0 +1,21 @@
+# Build intermediates, firmware binaries and release artifacts (never committed)
+work/
+artifacts/
+vendor/
+
+# Python
+__pycache__/
+*.pyc
+*.o
+
+# Release binaries (distributed via GitHub Releases, not in source)
+*.bin
+*.zip
+*.sha256
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Project internal data (not source)
+.workbuddy/

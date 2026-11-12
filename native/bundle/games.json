@@ -1,0 +1,338 @@
+{
+  "schema": 1,
+  "description": "Single source of truth for the combined Games firmware image. Adding a game means adding one entry here plus its own source, asset, test and evidence files; no game-specific names are hardcoded in the bundle build or packager.",
+  "status": "four-game experimental release; emulator-tested only",
+  "image": {
+    "builder": "native/build_combined.py",
+    "baseline_dir": "work/native-build",
+    "output_dir": "work/combined-game",
+    "main_image": "row-main.bin",
+    "build_metadata": "build.json",
+    "bundle_metadata": "bundle-build.json",
+    "extension_start": "0x60f59800",
+    "extension_base": "0x60021020",
+    "load_end_site": "0x60045e9c",
+    "extension_limit_bytes": 262144
+  },
+  "install": {
+    "package_name": "om3-games-bundle-buttons-r2",
+    "firmware_path": "card/DCOLYMP/E1479999.BIN",
+    "caduceus": "v0.26.2",
+    "release_dir": "vendor/caduceus-om3/releases/v0.26.2",
+    "firmware_package_dir": "vendor/caduceus-om3/firmware",
+    "version_matched_card_files": [
+      "GUIDES.BIN",
+      "LABELS.BIN",
+      "TONES.BIN"
+    ],
+    "keep_existing_card_files": [
+      "LOOKS.BIN",
+      "EDITS.BIN",
+      "BUNDLES.BIN"
+    ],
+    "optional_default_looks": "LOOKS.BIN"
+  },
+  "launcher": {
+    "state_closed": 0,
+    "state_menu": 1,
+    "entries": [
+      "2048",
+      "MINESWEEPER",
+      "MINI MARIO",
+      "BREAKOUT",
+      "BACK"
+    ],
+    "back_index": 4,
+    "state_ids": {
+      "2048": 2,
+      "minesweeper": 3,
+      "mario": 4,
+      "breakout": 5
+    },
+    "host_sources": [
+      "native/combined_host.s",
+      "native/combined_menu.s",
+      "native/combined_launcher.s",
+      "native/combined_bridge.s"
+    ],
+    "launcher_assets": "native/combined_launcher_assets.py"
+  },
+  "games": [
+    {
+      "id": "2048",
+      "title": "2048",
+      "state_id": 2,
+      "buffer": "board_buffer",
+      "sources": [
+        "native/2048_large.s"
+      ],
+      "assets": [
+        "native/assets_large.py"
+      ],
+      "generated_sources": [
+        "work/combined-game/2048-host.s"
+      ],
+      "tests": [],
+      "validation": [
+        "work/combined-game/mines-replay/mines-validation.json"
+      ],
+      "validation_note": "Covered by cross-game replay and the combined 2048 input regression.",
+      "controls": [
+        [
+          "Arrows / main and sub dials",
+          "Move tiles"
+        ],
+        [
+          "OK",
+          "Select in launcher; no action during a 2048 round"
+        ],
+        [
+          "INFO",
+          "Start a new round"
+        ],
+        [
+          "MENU",
+          "Back to the launcher"
+        ],
+        [
+          "Shutter half-press",
+          "Leave Games"
+        ],
+        [
+          "LCD / EVF switch",
+          "Clear the Games session"
+        ]
+      ],
+      "build_time_patches": [
+        "The GDESC/GSELECT descriptor block is removed from paint() in the generated 2048-host.s.",
+        "The game_event held-OK restart is stripped in the generated 2048-host.s.",
+        "The generated assets.inc HUD text is rewritten to advertise INFO instead of HOLD OK.",
+        "F and B glyphs are added to the generated assets.inc."
+      ],
+      "known_issues": [],
+      "evidence": [
+        "work/combined-game/mines-replay/2048-info.png",
+        "work/combined-game/mines-replay/2048-info-lost.png",
+        "work/combined-game/mines-replay/2048-info-won.png"
+      ]
+    },
+    {
+      "id": "minesweeper",
+      "title": "MINESWEEPER",
+      "state_id": 3,
+      "buffer": "mines_buffer",
+      "sources": [
+        "native/mines_core.s",
+        "native/mines_render.s"
+      ],
+      "assets": [
+        "native/mines_assets.py"
+      ],
+      "tests": [],
+      "validation": [
+        "work/mines-core/validation.json",
+        "work/mines-render/validation.json",
+        "work/combined-game/mines-replay/mines-validation.json"
+      ],
+      "controls": [
+        [
+          "Arrows / main and sub dials",
+          "Move the cursor"
+        ],
+        [
+          "OK",
+          "Open a cell; after a win or loss, start a new round"
+        ],
+        [
+          "INFO",
+          "Toggle a flag; after a win or loss, start a new round"
+        ],
+        [
+          "MENU",
+          "Back to the launcher; re-entering resumes"
+        ],
+        [
+          "Shutter half-press",
+          "Leave Games through the camera's own path"
+        ],
+        [
+          "LCD / EVF switch",
+          "Clear the Games session"
+        ]
+      ],
+      "evidence": [
+        "work/combined-game/mines-replay/launcher.png",
+        "work/combined-game/mines-replay/mines-start.png",
+        "work/combined-game/mines-replay/mines-move.png",
+        "work/combined-game/mines-replay/mines-open.png",
+        "work/combined-game/mines-replay/mines-flag.png",
+        "work/combined-game/mines-replay/mines-won.png",
+        "work/combined-game/mines-replay/mines-restarted.png",
+        "work/combined-game/mines-replay/mines-hold.png",
+        "work/combined-game/mines-replay/mines-back.png",
+        "work/combined-game/mines-replay/puzzle-2048.png",
+        "work/combined-game/mines-replay/2048-hold.png",
+        "work/combined-game/mines-replay/mines-resume.png",
+        "work/combined-game/mines-replay/mines-exit.png",
+        "work/combined-game/mines-replay/mines-display-start.png",
+        "work/combined-game/mines-replay/mines-display-after.png",
+        "work/combined-game/mines-replay/mines-after-switch.png"
+      ],
+      "build_time_patches": [],
+      "generated_sources": [],
+      "support_sources": [
+        "native/test_mines_core.py",
+        "native/test_mines_render.py",
+        "native/test_mines_game.py"
+      ]
+    },
+    {
+      "id": "mario",
+      "title": "MINI MARIO",
+      "state_id": 4,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/mario_core.s",
+        "native/mario_render.s"
+      ],
+      "assets": [
+        "native/mario_assets.py",
+        "native/mario_level.py"
+      ],
+      "tests": [
+        "native/test_combined_game.py"
+      ],
+      "validation": [
+        "work/combined-game/mario-core/validation.json",
+        "work/combined-game/mario-render/validation.json",
+        "work/combined-game/mario-replay/validation.json"
+      ],
+      "controls": [
+        [
+          "Left / Right (hold)",
+          "Walk"
+        ],
+        [
+          "Up or OK",
+          "Jump; short taps are latched"
+        ],
+        [
+          "INFO",
+          "Restart the course"
+        ],
+        [
+          "MENU",
+          "Back to launcher; re-entry starts a new run"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Leave Games and cancel the timer"
+        ]
+      ],
+      "evidence": [
+        "work/combined-game/mario-replay/mario-launcher.png",
+        "work/combined-game/mario-replay/start.png",
+        "work/combined-game/mario-replay/walk.png",
+        "work/combined-game/mario-replay/jump.png",
+        "work/combined-game/mario-replay/scroll.png",
+        "work/combined-game/mario-replay/won.png",
+        "work/combined-game/mario-replay/lost.png",
+        "work/combined-game/mario-render/performance-comparison.json"
+      ],
+      "validation_note": "The umbrella test runs every game check, including Mario helpers listed in support_sources.",
+      "support_sources": [
+        "native/test_mario_core.py",
+        "native/test_mario_render.py",
+        "native/test_mario_game.py"
+      ]
+    },
+    {
+      "id": "breakout",
+      "title": "BREAKOUT",
+      "state_id": 5,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/breakout_core.s",
+        "native/breakout_render.s"
+      ],
+      "assets": [
+        "native/breakout_assets.py"
+      ],
+      "tests": [
+        "native/test_breakout.py",
+        "native/test_games_label.py"
+      ],
+      "validation": [
+        "work/combined-game/breakout/validation.json",
+        "work/combined-game/label-review/validation.json"
+      ],
+      "controls": [
+        [
+          "Left / Right (hold)",
+          "Move paddle"
+        ],
+        [
+          "OK",
+          "Launch waiting ball"
+        ],
+        [
+          "INFO",
+          "Restart"
+        ],
+        [
+          "MENU",
+          "Back to launcher"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Exit and cancel timer"
+        ]
+      ],
+      "evidence": [
+        "work/combined-game/breakout/breakout-launcher.png",
+        "work/combined-game/breakout/breakout-ready.png",
+        "work/combined-game/breakout/breakout-rally.png",
+        "work/combined-game/breakout/breakout-won.png",
+        "work/combined-game/breakout/breakout-lost.png",
+        "work/combined-game/breakout/playability-result.json",
+        "work/combined-game/label-review/row.png"
+      ],
+      "known_issues": [
+        "breakout-entry-freeze-hardware-retest"
+      ],
+      "validation_note": "Button-only revision; touch hook and gesture code removed after hardware freeze report."
+    }
+  ],
+  "shared_evidence": [
+    "work/combined-game/build.json",
+    "work/combined-game/bundle-build.json"
+  ],
+  "docs": [
+    "native/INSTALL_AND_RESTORE.md",
+    "native/HARDWARE_RISK_REVIEW.md",
+    "native/MINES_STATUS.md",
+    "native/COMBINING_GAMES.md",
+    "native/BUNDLE_ARCHITECTURE.md",
+    "native/KNOWN_ISSUES.md",
+    "native/MARIO_ENRICHMENT_IDEAS.md",
+    "native/MARIO_STATUS.md",
+    "native/BREAKOUT_STATUS.md",
+    "native/GAMES_NEXT_DEVELOPMENT.md"
+  ],
+  "generated_sources_to_ship": [
+    "work/combined-game/2048-host.s",
+    "work/combined-game/assets.inc",
+    "work/combined-game/mines_assets.inc",
+    "work/combined-game/mario_assets.inc",
+    "work/combined-game/mario_level.inc",
+    "work/combined-game/combined_launcher.inc",
+    "work/combined-game/original.inc",
+    "work/combined-game/row.bin",
+    "work/combined-game/breakout_assets.inc",
+    "work/combined-game/breakout_level.inc"
+  ],
+  "licenses": [
+    "vendor/caduceus-om3/LICENSE",
+    "vendor/caduceus-om3/NOTICE"
+  ]
+}
