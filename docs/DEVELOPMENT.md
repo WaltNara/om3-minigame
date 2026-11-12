@@ -77,7 +77,7 @@ Each game is a module registered in `games.json` and linked by
    KiB ceiling, keeping the 16 KiB reserve.
 5. Package only when ready (`package.py`); verify with `--dry-run` first.
 
-## Hard rules (from `native/GAMES_NEXT_DEVELOPMENT.md`)
+## Hard rules
 
 - One camera update holds all games; the standalone historical builders are not
   the baseline.
@@ -92,7 +92,6 @@ Each game is a module registered in `games.json` and linked by
 
 - `native/BUNDLE_ARCHITECTURE.md` — manifest-driven build / validate / package.
 - `native/COMBINING_GAMES.md` — low-level hook + budget contract.
-- `native/GAMES_NEXT_DEVELOPMENT.md` — baseline rules and release discipline.
 - `native/INSTALL_AND_RESTORE.md` — card layout, install, rollback.
 - `native/HARDWARE_RISK_REVIEW.md` — what is and isn't validated on hardware.
 - `native/KNOWN_ISSUES.md` — resolved input changes + remaining hardware checks.

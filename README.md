@@ -84,8 +84,7 @@ in `native/bundle/games.json`. In short:
 
 Detailed references:
 [`native/BUNDLE_ARCHITECTURE.md`](native/BUNDLE_ARCHITECTURE.md),
-[`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md),
-[`native/GAMES_NEXT_DEVELOPMENT.md`](native/GAMES_NEXT_DEVELOPMENT.md).
+[`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md).
 
 ## Installing / restoring
 

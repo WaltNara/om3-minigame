@@ -19,3 +19,14 @@ Thumbs.db
 
 # Project internal data (not source)
 .workbuddy/
+
+# Local-only documentation (historical notes / status logs, not published)
+docs/research/
+native/BREAKOUT_STATUS.md
+native/GAMES_DEVELOPMENT_NOTES.md
+native/GAMES_NEXT_DEVELOPMENT.md
+native/MARIO_ENRICHMENT_IDEAS.md
+native/MARIO_STATUS.md
+native/MINES_STATUS.md
+native/SEPARATE_GAMES_STATUS.md
+native/SEPARATE_PANEL_PROBE.md
