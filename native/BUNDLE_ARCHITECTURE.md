@@ -54,11 +54,10 @@ pass; image-bearing reports must match the candidate SHA-256.
 
 Version-matched GUIDES/LABELS/TONES travel with firmware at packaging time.
 Keep the user's LOOKS/EDITS/BUNDLES. See [COMBINING_GAMES.md](COMBINING_GAMES.md)
-for the firmware/card contract and [MARIO_STATUS.md](MARIO_STATUS.md) for the
-new game's scope and constraints. Emulator results are not camera validation.
+for the firmware/card contract. Emulator results are not camera validation.
 
-Breakout is the fourth game; [BREAKOUT_STATUS.md](BREAKOUT_STATUS.md) records
-its controls and the physical-touch limitation. `combined_bridge.s` dispatches
+Breakout is the fourth game; its controls and the physical-touch limitation are
+recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). `combined_bridge.s` dispatches
 timer events to the active game and consumes touch only in Breakout. Breakout
 shares Mario's output buffer and chunk assets; neither keeps pixels when
 inactive. The five-entry launcher retains its own bounded buffer. Native

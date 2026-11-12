@@ -42,4 +42,4 @@ Older archives are historical builds. The four-game
 The previous release froze when entering Breakout; touch also failed. r2 removes
 all game touch interception, payload access and gesture code. The cause of the
 entry freeze is not established, so this is not yet a hardware-confirmed fix.
-Controls are now held Left/Right, OK and INFO. See BREAKOUT_STATUS.md.
+Controls are now held Left/Right, OK and INFO.
