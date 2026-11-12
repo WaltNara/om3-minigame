@@ -16,8 +16,10 @@ buffer timing, heat and queued-tick risks remain applicable.
 Reviewed 2026-11-12. **The serious risk is installing modified firmware.**
 There is no identified game-specific mechanism that directly damages the
 sensor, shutter or lens, but code review and an emulator cannot establish
-hardware safety or assign a reliable failure probability. No physical camera
-has been used. This is an experimental build, not a hardware-qualified release.
+hardware safety or assign a reliable failure probability. The r2 bundle was
+subsequently confirmed by the user on a physical OM-3 on 2026-11-12 (see
+[ON_CAMERA_VALIDATION_R2.md](ON_CAMERA_VALIDATION_R2.md)). This remains an
+experimental build, not a hardware-qualified release.
 
 | Risk | What reduces it / what remains |
 | --- | --- |
@@ -40,10 +42,14 @@ is disabled in OM-Emu, so tests inject at the firmware's SEND_EVENT boundary.
 Instruction counts (Mario up to 305,733; Breakout up to 159,637 per sampled draw)
 are **not** millisecond measurements on the camera.
 
-The useful remaining gate is a short, supervised hardware trial: verify normal
-photography and exit responsiveness, then touch tracking/frame pace, then warmth
-and battery behavior. Stop using the mod if exits become unreliable or the body
-gets unusually hot. Do not disable thermal protection or alter touch-controller
+A short, supervised hardware trial was completed by the user on 2026-11-12: the
+r2 bundle installed, Games launched, and normal photography plus exit
+responsiveness were confirmed (see
+[ON_CAMERA_VALIDATION_R2.md](ON_CAMERA_VALIDATION_R2.md)). What still needs a
+physical body is longer-duration stability, measured warmth and battery behavior,
+concurrent/queued input under real load, and display-switch re-entry from inside
+the Games menu. Stop using the mod if exits become unreliable or the body gets
+unusually hot. Do not disable thermal protection or alter touch-controller
 initialization to compensate for emulator limitations. Larger changes to timer
 concurrency or display buffering should follow measured evidence.
 

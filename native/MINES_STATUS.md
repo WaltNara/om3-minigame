@@ -2,8 +2,11 @@
 
 An experimental, event-driven 8x8 Minesweeper has been added to a separate
 Games build and packaged as `om3-minesweeper-experimental.zip`. It targets
-OM-3 firmware 1.1 / E147 build 1100 through Caduceus v0.26.2 and is
-**tested in OM-Emu only; it has not been tested on a physical camera**.
+OM-3 firmware 1.1 / E147 build 1100 through Caduceus v0.26.2. It was
+**validated as part of the r2 four-game bundle, which the user confirmed on a
+physical OM-3 on 2026-11-12** (see
+[ON_CAMERA_VALIDATION_R2.md](ON_CAMERA_VALIDATION_R2.md)); individual
+Minesweeper scenarios were not separately instrumented on hardware.
 
 The package is a single firmware image containing **2048 and Minesweeper
 behind one Games launcher**. Because the camera installs exactly one
@@ -159,4 +162,6 @@ Emulator evidence is not hardware evidence. Real drawing latency, physical
 button behaviour, concurrent key handling, buffer lifetime and normal
 shooting after a display switch made **from inside the Games menu** still
 need a physical camera. The 3x5 bitmap font is coarse at this scale. This
-build is not installed or uploaded to a camera.
+build shipped inside the r2 bundle, which the user installed on a physical
+OM-3 on 2026-11-12 (see
+[ON_CAMERA_VALIDATION_R2.md](ON_CAMERA_VALIDATION_R2.md)).
