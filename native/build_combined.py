@@ -11,6 +11,7 @@ import breakout_assets
 import mines_assets
 import mario_assets
 import assets_large
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 from test2048 import reference
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -19,6 +20,8 @@ FLAPPY='--flappy' in sys.argv or FLAPPY_TOUCH
 COMPACT='--compact' in sys.argv or FLAPPY
 # Preserve the camera-tested r4 raw build in work/flappy-touch-repaired.
 OUT=ROOT/('work/flappy-touch-v2' if FLAPPY_TOUCH else ('work/flappy-buttons' if FLAPPY else ('work/compact-games' if COMPACT else 'work/combined-game')))
+if os.environ.get('OM3_OUTPUT_DIR'):
+ OUT=ROOT/os.environ['OM3_OUTPUT_DIR']
 if COMPACT:
  import compact_assets
  compact_assets.install(assets_large,mines_assets)
@@ -33,14 +36,14 @@ spec=json.loads((ROOT/'vendor/caduceus-om3/releases/v0.26.2/patch.json').read_te
 package=(BUILD/'caduceus-v0.26.2.bin').read_bytes()
 assert patch.sha(package)==spec['result_sha256'], 'Caduceus baseline hash mismatch'
 assert bytes(image)==patch.decode(patch.parse(package)[0]['enc']), 'Decoded baseline mismatch'
-source_paths=[ROOT/'native'/name for name in ('build_combined.py','combined_host.s','combined_menu.s',
+source_paths=[(ROOT/'tests'/name if name.startswith('test') else ROOT/'native'/name) for name in ('build_combined.py','combined_host.s','combined_menu.s',
  'breakout_core.s','breakout_render.s','breakout_assets.py','test_breakout.py','combined_launcher.s','combined_launcher_assets.py','mines_core.s','mines_render.s','mines_assets.py',
  'mario_level.py','mario_core.s','mario_render.s','mario_assets.py','combined_bridge.s',
  'assets.py','assets_large.py','2048_large.s','test2048.py','test_mario_game.py','test_mario_core.py','test_mario_render.py','test_mines_game.py','test_combined_game.py')]
 if COMPACT: source_paths.append(ROOT/'native/compact_assets.py')
 if FLAPPY: source_paths += [ROOT/'native'/n for n in ('flappy_build.py','flappy_assets.py','flappy_core.s','flappy_render.s')]
 if FLAPPY_TOUCH: source_paths.append(ROOT/'native/flappy_touch_reply.s')
-sources={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
+sources={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
 def u32(a): return struct.unpack_from('<I',image,a-BASE)[0]
 def put32(a,v): struct.pack_into('<I',image,a-BASE,v)
 def data(a,n): return bytes(image[a-BASE:a-BASE+n])

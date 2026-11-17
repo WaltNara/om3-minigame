@@ -1,133 +1,65 @@
-# OM-3 Native Minigames
+# OM-3 Minigames
 
-A small pack of native minigames that run inside **Picture Mode → Games** on the
-OM SYSTEM OM-3 (firmware 1.1), built on top of the
-[Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) firmware patch.
+Five native games inside **Picture Mode > Games** on the OM SYSTEM OM-3,
+firmware 1.1 (E147 build 1100), built on
+[Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) v0.26.2.
 
-> ⚠️ **Experimental.** Installing modified firmware can brick a camera. Do it only
-> at your own risk, on a full battery, and keep the stock restore image. Emulator
-> checks are not hardware proof; the accepted five-game **r5** build additionally
-> has a user-reported good on-camera touch result. See
-> [`native/HARDWARE_RISK_REVIEW.md`](native/HARDWARE_RISK_REVIEW.md) and
-> [`native/TOUCH_DEVELOPMENT_GUIDE.md`](native/TOUCH_DEVELOPMENT_GUIDE.md).
-
-## What's in the box
-
-| Game | One-line note |
+| Game | Controls |
 | --- | --- |
-| 2048 | arrow/dial move, INFO restarts, MENU/shutter exits |
-| Minesweeper | 8×8, first-click-safe, flood fill, flag |
-| Mini Mario | scrolling auto-runner, button jump |
-| Breakout | button-only paddle |
-| Flappy | slow tap-controlled flight; live distance; **the touch-enabled game** |
+| 2048 | Arrows/dials; INFO restarts |
+| Minesweeper | Arrows/dials, OK to open, INFO to flag |
+| Mini Mario | Left/right; Up/OK to jump; scrolling map |
+| Breakout | Left/right paddle; OK launches |
+| Flappy | Tap or Up/OK; slow pace, variable pipe spacing, live distance |
 
-All five share one Games launcher. Only Flappy owns touch: a tap queues one flap
-and all consumed touch events complete the camera's native reply handshake. The
-other four keep stock touch behaviour; buttons work in all five. See
-[`native/TOUCH_DEVELOPMENT_GUIDE.md`](native/TOUCH_DEVELOPMENT_GUIDE.md) for the
-accepted implementation rules and validation commands.
+MENU returns to the launcher; shutter leaves Games. Only Flappy owns touch.
+**r5 is the accepted baseline:** the user reports a perfect camera touch test.
+See [current status and limits](docs/STATUS.md).
 
-The camera installs exactly **one** firmware image (`DCOLYMP/E1479999.BIN`), so
-the games are combined into a single image at build time — see
-[`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md). Current accepted source
-build: `py -3 native/build_combined.py --flappy-touch` (raw image SHA256
-`a3b5e0aa720f3703f6d3adcf771edb855ac99d63c24c116816976ff37c203ed8`, five-r5).
+Modified firmware carries installation risk. Use the supported model/version,
+a charged battery, and keep stock rollback. Read the
+[installation guide](docs/INSTALL_FIVE_GAMES.md) before installing.
+Firmware and dependencies are kept locally and are not committed here.
 
-## Dependency — referenced, not included
+## Start here
 
-This repository contains **only the game modules and their build/packaging
-layer**. Two external pieces are required to build or run, and are **not** part
-of this repo:
+- Install/play: [installation and controls](docs/INSTALL_FIVE_GAMES.md).
+- Build/change games: [development guide](docs/DEVELOPMENT.md).
+- Touch: [working implementation and lessons](docs/TOUCH_DEVELOPMENT_GUIDE.md).
+- Limits: [status](docs/STATUS.md), [hardware review](docs/HARDWARE_RISK_REVIEW.md).
 
-- **Caduceus for OM-3** v0.26.2 (Apache-2.0, androidfanman; derived from
-  cakelesscoder/caduceus-ep7). Pinned at commit `f4d2569…`. Obtain it separately
-  and place it at `vendor/caduceus-om3/`.
-- **Your own official OM-3 firmware 1.1 file.** The patched image and the stock
-  restore image are produced from it; manufacturer firmware is **not**
-  redistributed here.
+After setting up the external inputs in the development guide:
 
-The local `vendor/`, `work/` and `artifacts/` directories are git-ignored — they
-hold the fetched dependency, build intermediates and release zips respectively.
-
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the exact setup, build,
-test and packaging flow.
-
-## Project layout
-
-```
-om3-minigames/
-├── README.md                 # this file
-├── LICENSE                   # Apache-2.0 (this project)
-├── NOTICE                    # provenance / dependency note
-├── docs/
-│   └── DEVELOPMENT.md        # interfaces & how to extend  ← start here
-├── native/                   # game source, build, tests, docs
-│   ├── bundle/               # manifest-driven build & package framework
-│   ├── 2048*.s, mines_*.s, mario_*.s, breakout_*.s, flappy_*.s, combined_*.s
-│   ├── INSTALL_FIVE_GAMES.md  # current five-game install / rollback
-│   ├── TOUCH_DEVELOPMENT_GUIDE.md  # touch event ownership / gesture rules
-│   ├── BUNDLE_ARCHITECTURE.md, COMBINING_GAMES.md
-│   └── HARDWARE_RISK_REVIEW.md, KNOWN_ISSUES.md, …
-├── tools/desktop-prototypes/ # early desktop/guessing prototypes (historical)
-├── vendor/                   # Caduceus (git-ignored; fetched separately)
-├── work/                     # build intermediates & firmware (git-ignored)
-└── artifacts/                # release zips (git-ignored)
+```powershell
+py -3 build/build.py                     # five-game build + current validation
+py -3 build/build.py --verify-existing   # recheck hashes and reports
+py -3 build/package.py --dry-run         # verify packaging inputs
+py -3 build/package.py --name my-release # create a NEW local package
 ```
 
-## For developers — interfaces & extension
+## Layout
 
-The usable surface for adding or modifying a game is documented in
-[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md), with the machine-readable contract
-in `native/bundle/games.json`. In short:
+```text
+build/                 manifest, build/test driver, packager, verifier
+native/                camera assembly, assets, low-level build/setup
+tests/                native/emulator scripts and source-only checks
+docs/                 installation, development, status, touch guide
+   architecture/       integration contracts
+   history/            earlier installation and camera records
+tools/
+   diagnostics/        failure reproductions and probes
+   legacy/             superseded standalone builders and packagers
+   desktop-prototypes/ early desktop games
+```
 
-- **Manifest** — `native/bundle/games.json`: one entry per game (state id, source
-  and asset files, controls, tests, evidence). No game names are hardcoded in the
-  builder.
-- **Dispatch** — `combined_host.s` owns input and paint dispatch by `games_state`;
-  `combined_menu.s` owns launcher navigation; per-game `core`/`render`/`assets`
-  modules implement the rules and drawing.
-- **Build & validate** — `py -3 native/bundle/build.py` (and `--verify-existing`);
-  `test_combined_game.py` runs native + replay checks; `py -3 native/bundle/package.py`
-  produces a release (never overwrite an existing archive; use a new `package_name`).
-- **Constraints** — one firmware image, fixed-size state, bounded buffers, ≤240 KiB
-  extension with a 16 KiB reserve; timed games must keep state/render on the GUI
-  task and cancel timers on exit.
+`vendor/`, `work/`, and `artifacts/` are ignored dependencies, generated outputs,
+and packages. Private historical notes stay in ignored `docs/archive/` and
+`docs/research/`. See [organization decisions](docs/REPOSITORY.md).
 
-Detailed references:
-[`native/BUNDLE_ARCHITECTURE.md`](native/BUNDLE_ARCHITECTURE.md),
-[`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md).
-
-## Installing / restoring
-
-The built firmware + card files are distributed as a binary release
-(`om3-games-bundle-five-r5`); binaries are **not** committed to this repository.
-Follow [`native/INSTALL_FIVE_GAMES.md`](native/INSTALL_FIVE_GAMES.md) (current
-five-game flow) or [`native/INSTALL_AND_RESTORE.md`](native/INSTALL_AND_RESTORE.md)
-(the earlier four-game reference). Short version: copy `card/` to the SD root,
-hold OK while powering on, wait for the lamp to blink, then delete
-`DCOLYMP/E1479999.BIN` from the card. Keep the `OM3MOD/` files. Never mix install
-and restore BINs.
-
-## Release notes — five-r5 (accepted touch baseline)
-
-- Fixes the r3 touch **deadlock** (missing native completion reply) and the r4
-  **missed taps** (stale contact latch when a gesture ended with kind 4/5).
-- Touch owns only the Flappy page; terminal kinds 3/4/5 clear contact, one flap
-  per initial contact, no payload retention or extra state.
-- Local gates: 181 touch events with 181 replies/waits returned, 1,750 physics
-  cases, 26 raster frames, seven GUI scenarios, 14 outside-game parity snapshots.
-  Camera: user reports the touch test is perfect; no event trace or endurance
-  duration was recorded.
-- Still open: E147's physical controller is unmodelled, long-session stability
-  and touch recovery after an LCD/EVF switch are unverified, and earlier rare
-  R2 freezes are a separate unresolved issue.
-- Earlier r3 is withdrawn; r4 (no freeze, missed taps) is the comparison
-  baseline; both are preserved as local-only release packages.
+The manifest inventories games and drives build/test/package commands. Native
+linking and dispatch remain explicit; adding a manifest entry alone adds no game.
 
 ## License
 
-The game modules in this project are licensed under the **Apache License 2.0** —
-see [`LICENSE`](LICENSE). They build on Caduceus for OM-3 (Apache-2.0,
-androidfanman), which is a separate project referenced as a dependency and **not**
-included here. No OM Digital Solutions / Olympus firmware is redistributed by this
-repository.
+Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Caduceus is an external
+Apache-2.0 dependency. Manufacturer firmware is not redistributed in this repository.

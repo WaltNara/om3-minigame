@@ -1,120 +1,94 @@
-# Development guide — interfaces and extending the bundle
+# Development
 
-This is the entry point for working on the minigames. It describes the **usable
-interfaces** and how to add or change a game. Gameplay rules are out of scope —
-the games are standard.
+## Setup
 
-## Prerequisites (dependencies, obtained separately)
+Native builds currently use Python 3, Node.js and MN10300 binutils on Windows.
+Source-only checks also run on Linux. External inputs are not in Git.
 
-1. **Caduceus for OM-3** v0.26.2, pinned at commit `f4d2569…`. Clone
-   `https://github.com/androidfanman/caduceus-om3` into `vendor/caduceus-om3/`.
-   Its `releases/v0.26.2` and `firmware/` directories are consumed by the build.
-2. **Your official OM-3 firmware 1.1 file** (`OLY_E_147_1100_…BIN`). The build
-   patches this into the combined image and produces the stock restore bytes. It
-   is never committed.
-3. Toolchain: MN10300 binutils (`native/build_toolchain.sh`) and `om-emu` are
-   staged under `work/` for local builds.
+1. Clone Caduceus into `vendor/caduceus-om3`, checking out commit
+   `f4d2569eb46817795ec5ffaf931ba058d2c0d029` (v0.26.2).
+2. Obtain your official OM-3 1.1 firmware. `py -3 native/fetch_inputs.py stock`
+   downloads/verifies the upstream-pinned file into `work/`.
+3. Fetch sources with `py -3 native/fetch_inputs.py binutils`. In an MSYS/MinGW
+   shell, run `bash native/build_toolchain.sh`. Supply GCC/make on PATH or set
+   `OM3_MAKE`; output is `work/toolchain/`.
+4. Obtain OM-Emu under `work/om-emu/emu` using Caduceus's emulator instructions.
+   `native/windows_emu.py` provides Windows adaptation. Source-only CI does not
+   download the emulator or manufacturer firmware.
+5. Run `py -3 native/build.py`, `py -3 native/prepare_emulator.py`, then
+   `py -3 tests/test_emulator.py seed` and `py -3 tests/test_emulator.py validate` to prepare the baseline and paired card.
+   This setup builder includes the old guessing game as a harness seed;
+   it is not the combined release to install.
 
-## The build pipeline
-
-```
-native/bundle/games.json   →  manifest (single source of truth)
-native/build_combined.py    →  patches Caduceus baseline, links game modules
-                                 → work/combined-game/row-main.bin
-native/bundle/build.py      →  builds, runs registered checks, verifies hashes
-                                 + 256 KiB budget, writes bundle-build.json
-native/bundle/package.py    →  assembles card/ + restore/ + verification
-                                 → artifacts/<package_name>.zip
-```
-
-Commands (run from the repo root):
+Before seeding, create the blank card with the generated blank helper:
 
 ```powershell
-py -3 native/bundle/build.py                   # build + validate
-py -3 native/bundle/build.py --verify-existing # re-verify without rerunning checks
-py -3 native/test_combined_game.py             # native + full-camera replay checks
-py -3 native/bundle/package.py                 # produce a release zip
-py -3 native/bundle/package.py --dry-run       # inputs only
+$env:OM_EMU_MODEL='E147'
+py -3 native/windows_emu.py
+node work/native-build/blank.mjs file:///D:/path/to/project/work/om-emu/emu work/native-build/main.bin blank work/native-build/blank-check.json work/native-build/blank.omsd
 ```
 
-`package.py` checks every container checksum, includes the exact stock restore
-bytes, and reads the finished ZIP back to verify CRCs/hashes. Use a **new
-`package_name`** per release; existing archives are never overwritten.
+Replace the file URL with your checkout location. Run this after generating the
+helpers, before `test_emulator.py seed` and `validate`.
 
-## The interface a game must implement
+## Current workflow
 
-Each game is a module registered in `games.json` and linked by
-`build_combined.py`. The shared contract:
+Run from the repository root:
 
-- **State id** — a unique integer (2048 = 2, Minesweeper = 3, Mario = 4,
-  Breakout = 5; Back returns to the launcher). `combined_host.s` dispatches input
-  and paint by this id.
-- **Source / asset files** — `core` (rules + state + draw buffer), `render`
-  (RLE / prepacked scanline drawing), `assets` (packed rows / bitmaps), and a host
-  fragment for input. All buffers are **fixed-size and bounded**; no heap, no
-  retained screen pointer.
-- **Launcher entry** — one label + one pooled bitmap; extend the selection wrap
-  and Back index in `combined_menu.s`.
-- **Controls** — declared in `games.json`. Keys are native GUI events: OK
-  `0x900c`, INFO `0x9014`, dpad `0x9004/6/8/a`. The held-OK event (`0x903e`) is
-  **not** delivered in Picture Mode, so 2048 uses INFO to restart.
-- **Tests + evidence** — per-game native rule/render checks and a whole-camera
-  replay are listed in `games.json` and must pass before packaging.
+```powershell
+py -3 tools/check_repository.py
+py -3 build/build.py
+py -3 build/build.py --verify-existing
+py -3 build/package.py --dry-run
+py -3 build/package.py --name my-new-release
+```
 
-## Adding a new game (steps)
+`build/games.json` selects `--flappy-touch`, `work/current-games`, current tests,
+docs and evidence. Builder and tests receive the same output path. The driver
+writes `bundle-build.json` after checking image/source/report hashes and the
+256 KiB loaded budget. Known native report success formats are accepted through
+a shared validator; an explicit matching image hash is required.
 
-1. Register it in `native/bundle/games.json`: state id, sources, assets, controls,
-   tests, evidence. List any helper scripts under `support_sources` so they are
-   hashed into the source archive.
-2. Implement `core` / `render` / `assets`; add input + startup + render branches
-   in `combined_host.s`; extend launcher navigation in `combined_menu.s`; link the
-   module in `build_combined.py`.
-3. Keep fixed-size state and bounded buffers; prefer event-driven games. Timed
-   games (Mario, Breakout) must post ticks to the GUI queue and keep all
-   state/render on the GUI task, cancelling timers on exit and discarding stale
-   epochs.
-4. Rebuild and validate: target ≤240 KiB including appended tables, within the 256
-   KiB ceiling, keeping the 16 KiB reserve.
-5. Package only when ready (`package.py`); verify with `--dry-run` first.
+Current checks cover Flappy physics/render/playability, GUI exits, touch protocol
+and outside-game parity. They do not claim exhaustive fresh coverage of the four
+other games. Historical per-game scripts remain in `tests/`; see its README.
 
-## Hard rules
+The reorganized build must match accepted r5 raw bytes. Source-path metadata
+changes. The sealed r5 source snapshot, package and rollback stay untouched.
+Future gameplay changes need separate camera checks. Packaging uses published
+source/docs plus external inputs and generated evidence; it preserves source
+paths, checks the firmware container/restore and reads back ZIP hashes. Choose a
+new name; releases are never overwritten. Local packages contain firmware and
+must not be committed or uploaded as part of source maintenance.
 
-- One camera update holds all games; the standalone historical builders are not
-  the baseline.
-- Do not increase frame rate without measured evidence; slow-frame queue growth
-  and graphics-buffer DMA lifetime are still hardware-open questions.
-- No touch experiments without a separate hardware probe; emulator SEND_EVENT
-  injection does not emulate the E147 controller.
-  Follow the [touch development guide](../native/TOUCH_DEVELOPMENT_GUIDE.md):
-  establish delivery and gesture semantics before coordinate-based gameplay.
-- Consumed touch events must still complete the native application's reply
-  handshake. Test through the application queue; direct GUI injection missed
-  the r3 deadlock.
-- Test tap/double-tap endings as alternatives to release, not only after it.
-  The r4 contact latch stayed set on 1,4 and 1,5 sequences despite completing
-  every reply; r5 clears it on terminal kinds 3/4/5.
-- Never confuse the install vs restore `E1479999.BIN` source folders.
-- Record user hardware results separately from emulator results.
+## Adding/changing a game
 
-## Where to look
+Native assembly and assets remain grouped by filename in `native/`, keeping
+camera-tested includes/imports simple. `combined_host.s` owns input/paint,
+`combined_menu.s` owns navigation, and `combined_bridge.s` posts GUI ticks.
+`flappy_build.py` generates fifth-game hosts with checked string replacements;
+this is a maintenance constraint, not a plugin interface.
 
-- `native/BUNDLE_ARCHITECTURE.md` — manifest-driven build / validate / package.
-- `native/COMBINING_GAMES.md` — low-level hook + budget contract.
-- `native/INSTALL_AND_RESTORE.md` — card layout, install, rollback.
-- `native/HARDWARE_RISK_REVIEW.md` — what is and isn't validated on hardware.
-- `native/KNOWN_ISSUES.md` — resolved input changes + remaining hardware checks.
+1. Implement bounded core/render/assets with a unique state ID (2-6 are taken).
+   Extend startup/input/paint/launcher dispatch and linker inputs.
+2. Register sources, controls, tests and honest validation scope in
+   `build/games.json`. Tests must name the exact image they ran.
+3. Budget loaded bytes including alignment/tables. r5 uses 232 KiB with 24 KiB
+   spare. Keep at least 16 KiB reserve under the 256 KiB ceiling.
+4. Prove entry/input/render/exits, run relevant checks, package under a new name,
+   and record camera results in `docs/STATUS.md`.
 
-## Native implementation lessons
+## Implementation rules
 
-- Verify CALL versus CALLS stack frames and saved registers with small native
-  probes before adding a new hook. Preserve MDR when the caller needs it;
-  multiplication can overwrite it. Link branch destinations and inspect disassembly.
-- Pass the existing graphics API uncached addresses (firmware-resident data
-  uses the +0x40000000 alias), keep RLE runs within scanlines, and preserve the
-  proven surfaces and unscaled draw calls. Derive buffer bounds before linking.
-- Prove entry, input, redraw and exit early. Keep emulator results and user
-  hardware confirmation distinct; instruction counts are not camera timings.
+- GUI task alone owns game/render state. Timers post messages; cancel them on
+  exit and discard stale generations.
+- Preserve CALL/CALLS frames and registers; never retain event payload pointers.
+- Bound RLE output and scanlines; use proven surfaces/uncached aliases. Emulator
+  instruction counts are not camera rendering timings.
+- Complete one native reply per consumed touch; clear contact on endings 3/4/5.
+  Test through the waiting application producer. See the [touch guide](TOUCH_DEVELOPMENT_GUIDE.md).
+- Keep hardware reports separate from local tests. Display-switch recovery and
+  sustained stability remain open. Do not raise frame rate speculatively.
 
-Historical probes, stage-by-stage handoffs and research notes are deliberately
-not published in this repository; the accepted baseline and its current
-validation reports are linked above.
+See [integration](architecture/COMBINING_GAMES.md) and
+[bundle workflow](architecture/BUNDLE_ARCHITECTURE.md).

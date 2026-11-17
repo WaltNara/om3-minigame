@@ -1,0 +1,449 @@
+{
+  "schema": 1,
+  "description": "Release inventory and workflow configuration. Low-level game linking and dispatch remain explicit in native/build_combined.py and combined/flappy host generation.",
+  "status": "five-game r5; accepted touch baseline (user camera report), emulator checks only for the remaining gates",
+  "image": {
+    "builder": "native/build_combined.py",
+    "baseline_dir": "work/native-build",
+    "output_dir": "work/current-games",
+    "main_image": "row-main.bin",
+    "build_metadata": "build.json",
+    "bundle_metadata": "bundle-build.json",
+    "extension_start": "0x60f59800",
+    "extension_base": "0x60021020",
+    "load_end_site": "0x60045e9c",
+    "extension_limit_bytes": 262144,
+    "builder_args": [
+      "--flappy-touch"
+    ],
+    "environment": {
+      "OM3_OUTPUT_DIR": "work/current-games",
+      "OM3_FLAPPY_BUILD": "work/current-games",
+      "OM3_GAME_BUILD": "work/current-games"
+    }
+  },
+  "install": {
+    "package_name": "om3-games-bundle-next",
+    "firmware_path": "card/DCOLYMP/E1479999.BIN",
+    "caduceus": "v0.26.2",
+    "release_dir": "vendor/caduceus-om3/releases/v0.26.2",
+    "firmware_package_dir": "vendor/caduceus-om3/firmware",
+    "version_matched_card_files": [
+      "GUIDES.BIN",
+      "LABELS.BIN",
+      "TONES.BIN"
+    ],
+    "keep_existing_card_files": [
+      "LOOKS.BIN",
+      "EDITS.BIN",
+      "BUNDLES.BIN"
+    ]
+  },
+  "launcher": {
+    "state_closed": 0,
+    "state_menu": 1,
+    "entries": [
+      "2048",
+      "MINESWEEPER",
+      "MINI MARIO",
+      "BREAKOUT",
+      "FLAPPY",
+      "BACK"
+    ],
+    "back_index": 5,
+    "state_ids": {
+      "2048": 2,
+      "minesweeper": 3,
+      "mario": 4,
+      "breakout": 5,
+      "flappy": 6
+    },
+    "host_sources": [
+      "native/combined_host.s",
+      "native/combined_menu.s",
+      "native/combined_launcher.s",
+      "native/combined_bridge.s"
+    ],
+    "launcher_assets": "native/combined_launcher_assets.py"
+  },
+  "games": [
+    {
+      "id": "2048",
+      "title": "2048",
+      "state_id": 2,
+      "buffer": "board_buffer",
+      "sources": [
+        "native/2048_large.s"
+      ],
+      "assets": [
+        "native/assets_large.py"
+      ],
+      "generated_sources": [],
+      "tests": [],
+      "validation": [],
+      "controls": [
+        [
+          "Arrows / main and sub dials",
+          "Move tiles"
+        ],
+        [
+          "OK",
+          "Select in launcher; no action during a 2048 round"
+        ],
+        [
+          "INFO",
+          "Start a new round"
+        ],
+        [
+          "MENU",
+          "Back to the launcher"
+        ],
+        [
+          "Shutter half-press",
+          "Leave Games"
+        ],
+        [
+          "LCD / EVF switch",
+          "Clear the Games session"
+        ]
+      ],
+      "build_time_patches": [
+        "The GDESC/GSELECT descriptor block is removed from paint() in the generated 2048-host.s.",
+        "The game_event held-OK restart is stripped in the generated 2048-host.s.",
+        "The generated assets.inc HUD text is rewritten to advertise INFO instead of HOLD OK.",
+        "F and B glyphs are added to the generated assets.inc."
+      ],
+      "known_issues": [],
+      "evidence": []
+    },
+    {
+      "id": "minesweeper",
+      "title": "MINESWEEPER",
+      "state_id": 3,
+      "buffer": "mines_buffer",
+      "sources": [
+        "native/mines_core.s",
+        "native/mines_render.s"
+      ],
+      "assets": [
+        "native/mines_assets.py"
+      ],
+      "tests": [],
+      "validation": [],
+      "controls": [
+        [
+          "Arrows / main and sub dials",
+          "Move the cursor"
+        ],
+        [
+          "OK",
+          "Open a cell; after a win or loss, start a new round"
+        ],
+        [
+          "INFO",
+          "Toggle a flag; after a win or loss, start a new round"
+        ],
+        [
+          "MENU",
+          "Back to the launcher; re-entering resumes"
+        ],
+        [
+          "Shutter half-press",
+          "Leave Games through the camera's own path"
+        ],
+        [
+          "LCD / EVF switch",
+          "Clear the Games session"
+        ]
+      ],
+      "evidence": [],
+      "build_time_patches": [],
+      "generated_sources": [],
+      "support_sources": [
+        "tests/test_mines_core.py",
+        "tests/test_mines_render.py",
+        "tests/test_mines_game.py"
+      ]
+    },
+    {
+      "id": "mario",
+      "title": "MINI MARIO",
+      "state_id": 4,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/mario_core.s",
+        "native/mario_render.s"
+      ],
+      "assets": [
+        "native/mario_assets.py",
+        "native/mario_level.py"
+      ],
+      "tests": [],
+      "validation": [],
+      "controls": [
+        [
+          "Left / Right (hold)",
+          "Walk"
+        ],
+        [
+          "Up or OK",
+          "Jump; short taps are latched"
+        ],
+        [
+          "INFO",
+          "Restart the course"
+        ],
+        [
+          "MENU",
+          "Back to launcher; re-entry starts a new run"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Leave Games and cancel the timer"
+        ]
+      ],
+      "evidence": [],
+      "support_sources": [
+        "tests/test_mario_core.py",
+        "tests/test_mario_render.py",
+        "tests/test_mario_game.py"
+      ],
+      "generated_sources": []
+    },
+    {
+      "id": "breakout",
+      "title": "BREAKOUT",
+      "state_id": 5,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/breakout_core.s",
+        "native/breakout_render.s"
+      ],
+      "assets": [
+        "native/breakout_assets.py"
+      ],
+      "tests": [],
+      "validation": [],
+      "controls": [
+        [
+          "Left / Right (hold)",
+          "Move paddle"
+        ],
+        [
+          "OK",
+          "Launch waiting ball"
+        ],
+        [
+          "INFO",
+          "Restart"
+        ],
+        [
+          "MENU",
+          "Back to launcher"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Exit and cancel timer"
+        ]
+      ],
+      "evidence": [],
+      "known_issues": [
+        "breakout-entry-freeze-hardware-retest"
+      ],
+      "generated_sources": []
+    },
+    {
+      "id": "flappy",
+      "title": "FLAPPY",
+      "state_id": 6,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/flappy_core.s",
+        "native/flappy_render.s",
+        "native/flappy_touch_reply.s"
+      ],
+      "assets": [
+        "native/flappy_assets.py"
+      ],
+      "tests": [],
+      "validation": [],
+      "controls": [
+        [
+          "Tap / OK / Up",
+          "Flap; one action per initial contact"
+        ],
+        [
+          "INFO",
+          "Restart"
+        ],
+        [
+          "MENU",
+          "Back to the launcher (release the finger first)"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Exit and cancel the timer"
+        ]
+      ],
+      "known_issues": [
+        "physical-controller event kinds unmodelled",
+        "touch recovery after LCD/EVF switch unverified",
+        "long-session camera stability unmeasured"
+      ],
+      "support_sources": [
+        "native/flappy_build.py",
+        "tests/test_flappy.py",
+        "tests/test_flappy_touch_reply.py",
+        "tests/test_flappy_outside.py"
+      ],
+      "evidence": [
+        "work/current-games/validation/ready.png",
+        "work/current-games/validation/flight.png",
+        "work/current-games/validation/reset.png"
+      ],
+      "generated_sources": []
+    }
+  ],
+  "shared_evidence": [
+    "work/current-games/build.json",
+    "work/current-games/bundle-build.json"
+  ],
+  "docs": [
+    "docs/INSTALL_FIVE_GAMES.md",
+    "docs/HARDWARE_RISK_REVIEW.md",
+    "docs/TOUCH_DEVELOPMENT_GUIDE.md",
+    "docs/architecture/COMBINING_GAMES.md",
+    "docs/architecture/BUNDLE_ARCHITECTURE.md",
+    "docs/KNOWN_ISSUES.md",
+    "docs/STATUS.md"
+  ],
+  "generated_sources_to_ship": [
+    "work/current-games/2048-host.s",
+    "work/current-games/assets.inc",
+    "work/current-games/mines_assets.inc",
+    "work/current-games/mario_assets.inc",
+    "work/current-games/mario_level.inc",
+    "work/current-games/combined_launcher.inc",
+    "work/current-games/original.inc",
+    "work/current-games/row.bin",
+    "work/current-games/breakout_assets.inc",
+    "work/current-games/flappy_assets.inc",
+    "work/current-games/flappy-host.s",
+    "work/current-games/flappy-menu.s",
+    "work/current-games/flappy-bridge.s"
+  ],
+  "licenses": [
+    "vendor/caduceus-om3/LICENSE",
+    "vendor/caduceus-om3/NOTICE"
+  ],
+  "validation": {
+    "tests": [
+      "tests/test_flappy.py",
+      "tests/test_flappy_touch_reply.py",
+      "tests/test_flappy_outside.py"
+    ],
+    "reports": [
+      "work/current-games/validation/validation.json",
+      "work/current-games/touch-reply/validation.json",
+      "work/current-games/outside/validation.json"
+    ],
+    "scope": "Flappy native physics/render/playability, five-game GUI integration exits, and outside-game touch/profile parity. Historical per-game suites remain available in tests; these reports do not claim fresh exhaustive coverage of every other game."
+  },
+  "hardware_baseline": {
+    "release": "five-r5",
+    "raw_sha256": "a3b5e0aa720f3703f6d3adcf771edb855ac99d63c24c116816976ff37c203ed8",
+    "result": "User reports perfect on-camera touch test; no event trace or endurance duration recorded."
+  },
+  "source_dependencies": [
+    ".github/workflows/source-checks.yml",
+    "build/Verify-Package.ps1",
+    "build/build.py",
+    "build/games.json",
+    "build/manifest.py",
+    "build/package.py",
+    "native/2048.s",
+    "native/2048_large.s",
+    "native/assets.py",
+    "native/assets_large.py",
+    "native/breakout_assets.py",
+    "native/breakout_core.s",
+    "native/breakout_render.s",
+    "native/build.py",
+    "native/build_combined.py",
+    "native/build_toolchain.sh",
+    "native/combined_bridge.s",
+    "native/combined_host.s",
+    "native/combined_launcher.s",
+    "native/combined_launcher_assets.py",
+    "native/combined_menu.s",
+    "native/compact_assets.py",
+    "native/fetch_inputs.py",
+    "native/flappy_assets.py",
+    "native/flappy_build.py",
+    "native/flappy_core.s",
+    "native/flappy_render.s",
+    "native/flappy_touch_reply.s",
+    "native/game.s",
+    "native/games_menu.s",
+    "native/launcher_assets.py",
+    "native/mario_assets.py",
+    "native/mario_bridge.s",
+    "native/mario_core.s",
+    "native/mario_host.s",
+    "native/mario_launcher_assets.py",
+    "native/mario_level.py",
+    "native/mario_menu.s",
+    "native/mario_render.s",
+    "native/mario_timer_probe.s",
+    "native/mines_assets.py",
+    "native/mines_core.s",
+    "native/mines_host.s",
+    "native/mines_launcher_assets.py",
+    "native/mines_menu.s",
+    "native/mines_render.s",
+    "native/prepare_emulator.py",
+    "native/windows_emu.py",
+    "tests/test2048.py",
+    "tests/test2048_large.py",
+    "tests/test_2048_compact.py",
+    "tests/test_breakout.py",
+    "tests/test_combined_game.py",
+    "tests/test_compact_buffers.py",
+    "tests/test_emulator.py",
+    "tests/test_flappy.py",
+    "tests/test_flappy_outside.py",
+    "tests/test_flappy_touch.py",
+    "tests/test_flappy_touch_reply.py",
+    "tests/test_games_display.py",
+    "tests/test_games_features.py",
+    "tests/test_games_label.py",
+    "tests/test_games_menu.py",
+    "tests/test_games_profiles.py",
+    "tests/test_mario_core.py",
+    "tests/test_mario_game.py",
+    "tests/test_mario_render.py",
+    "tests/test_mario_timer.py",
+    "tests/test_mines_core.py",
+    "tests/test_mines_game.py",
+    "tests/test_mines_render.py",
+    "tests/test_repository.py",
+    "tools/check_repository.py",
+    "tools/desktop-prototypes/demo.py",
+    "tools/desktop-prototypes/test_demo.py"
+  ],
+  "documentation": [
+    "docs/DEVELOPMENT.md",
+    "docs/HARDWARE_RISK_REVIEW.md",
+    "docs/INSTALL_FIVE_GAMES.md",
+    "docs/KNOWN_ISSUES.md",
+    "docs/REPOSITORY.md",
+    "docs/STATUS.md",
+    "docs/TOUCH_DEVELOPMENT_GUIDE.md",
+    "docs/architecture/BUNDLE_ARCHITECTURE.md",
+    "docs/architecture/COMBINING_GAMES.md",
+    "docs/history/INSTALL_AND_RESTORE.md",
+    "docs/history/ON_CAMERA_VALIDATION_R2.md",
+    "docs/history/R2_HARDWARE_RISK_REVIEW.md",
+    "docs/history/R2_KNOWN_ISSUES.md"
+  ]
+}
