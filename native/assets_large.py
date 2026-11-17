@@ -37,7 +37,7 @@ def pack_row(pixels):
     tokens=[p*16+n-1 for p,n in runs]
     return b''.join(sum(t<<(12*j) for j,t in enumerate(tokens[k:k+5])).to_bytes(8,'little') for k in range(0,len(tokens),5))
 
-def make(path):
+def make(path, compact=False):
     pool={}; definitions=[]
     def intern(b):
         if b not in pool:
@@ -52,20 +52,26 @@ def make(path):
         for style in range(6):
             p=[7]*6+[bg]*90
             if exponent and style:
-                text=str(1<<exponent); x=(96-(len(text)*12-3))//2
+                text=str(1<<exponent)
+                scale=min(6,80//(4*len(text)-1)) if compact else 3
+                x=6+(90-(4*len(text)-1)*scale)//2 if compact else (96-(len(text)*12-3))//2
                 for ch in text:
                     for bit in FONT[ch][style-1]:
-                        for _ in range(3):
+                        for _ in range(scale):
                             if bit=='1': p[x]=7
                             x+=1
-                    x+=3
+                    x+=scale
             b=pack_row(p); rows.append((len(b),intern(b))); lengths.append(len(b))
     gap=pack_row([7]*96); blank=pack_row([7]*384)
     head='.balign 4\ntile_rows:\n'+''.join(f' .long {n},{label}\n' for n,label in rows)
     head+=f'gap_row:\n .long {len(gap)},{intern(gap)}\nblank_row:\n .long {len(blank)},{intern(blank)}\n'
+    if compact:
+        background=pack_row(([7]*6+[10]*90)*4)
+        head+=f'tile_background_row:\n .long {len(background)},{intern(background)}\n'
     # Each 8-pixel character row fits exactly five tokens (one 64-bit word).
     head+='char_rows:\n'
-    for code in range(128):
+    # HUD strings contain printable ASCII only; keep 32..127, including blanks.
+    for code in range(32 if compact else 0,128):
         glyph=FONT.get(chr(code),FONT[' '])
         for style in range(5):
             p=[7]+[10 if v=='1' else 7 for v in glyph[style] for _ in range(3)]+[7]*2
@@ -82,10 +88,17 @@ def make(path):
     head+='.set score_digits,hud_top+11\npowers10:\n .long 10000000,1000000,100000,10000,1000,100,10,1\n'
     maxlens=[max(lengths[e*6+s] for e in range(18)) for s in range(6)]
     cap=4*4*(75*maxlens[0]+6*len(gap)+3*sum(maxlens[1:]))+2*(15*32*8+33*len(blank))+4
+    if compact:
+        # Each tile keeps the same exponent throughout its five glyph rows.
+        # Plain/gap scanlines are copied once across the full board width.
+        glyph_max=max(sum(lengths[e*6+1:e*6+6]) for e in range(18))
+        cap=4+4*(60*len(background)+6*len(blank))+16*6*glyph_max+2*(15*32*8+33*len(blank))
     assert cap<65536
     head+=''.join(definitions)
     head+=f'.balign 4\n.global board_buffer, board_buffer_end\nboard_buffer:\n .space {cap},0\nboard_buffer_end:\n'
     path.write_text(head,encoding='ascii')
     return {'compressed_board_capacity':cap,'asset_row_bytes':sum(map(len,pool)),
             'full_framebuffer_bytes':384*480,'tile_exponent_bytes':16,
-            'heap_allocations':0,'row_copy_max_bytes':max(maxlens)}
+            'heap_allocations':0,'row_copy_max_bytes':max(maxlens+[len(background)] if compact else maxlens),
+            'compact_background_rows':compact,'tile_digit_height':30 if compact else 15,
+            'tile_digit_horizontal_scale_max':6 if compact else 3}

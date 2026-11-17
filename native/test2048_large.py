@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'work/separate-games' if os.environ.get('GAMES_COMBINED') else ROOT/'work/large-2048'
+OUT=ROOT/os.environ['OM3_GAME_BUILD'] if 'OM3_GAME_BUILD' in os.environ else (ROOT/'work/separate-games' if os.environ.get('GAMES_COMBINED') else ROOT/'work/large-2048')
 build=json.loads((OUT/'build.json').read_text()); sy=build['symbols']
 env=dict(os.environ,OM_EMU_MODEL='E147',GAME_STATE=f"{sy['game_state']:x}")
 env.pop('WATCH',None)

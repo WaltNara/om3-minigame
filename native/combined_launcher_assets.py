@@ -5,9 +5,10 @@ import assets_large as a
 ENTRIES=('2048','MINESWEEPER','MINI MARIO','BREAKOUT','BACK')
 a.FONT.setdefault('B',['110','101','110','101','110'])
 
-def make(out):
+def make(out, flappy=False):
+    entries=ENTRIES if not flappy else (*ENTRIES[:-1],'FLAPPY',ENTRIES[-1])
     pool={}; maps=[]; cap=0
-    for selected in range(len(ENTRIES)):
+    for selected in range(len(entries)):
         p=bytearray([7])*(384*480)
         def rect(x,y,w,h,c):
             for yy in range(y,y+h):p[yy*384+x:yy*384+x+w]=bytes([c])*w
@@ -19,8 +20,8 @@ def make(out):
                         if bit=='1':rect(x+xx*scale,y+yy*scale,scale,scale,c)
                 x+=4*scale
         label('GAMES',32,6,10)
-        for i,title in enumerate(ENTRIES):
-            y=108+i*72
+        for i,title in enumerate(entries):
+            y=100+i*(60 if flappy else 72) if flappy else 108+i*72
             if i==selected:rect(20,y-14,344,56,10)
             label(title,y,6,7 if i==selected else 10)
         indices=[];size=4

@@ -2,7 +2,7 @@
 import hashlib,json,os,struct,subprocess,zlib
 from pathlib import Path
 from breakout_assets import RECTS
-R=Path(__file__).resolve().parents[1];G=R/'work/combined-game';O=G/'breakout';B=R/'work/native-build'
+R=Path(__file__).resolve().parents[1];G=R/os.environ.get('OM3_GAME_BUILD','work/combined-game');O=G/'breakout';B=R/'work/native-build'
 O.mkdir(exist_ok=True)
 build=json.loads((G/'build.json').read_text());sy=build['symbols'];env=dict(os.environ,OM_EMU_MODEL='E147')
 for key in ('NCALL','NOUT','GAME_STATE','GAME_GC','WATCH','WSTACK','WFROM','WIDS'):env.pop(key,None)

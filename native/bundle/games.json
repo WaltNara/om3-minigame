@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "description": "Single source of truth for the combined Games firmware image. Adding a game means adding one entry here plus its own source, asset, test and evidence files; no game-specific names are hardcoded in the bundle build or packager.",
-  "status": "four-game experimental release; emulator-tested only",
+  "status": "five-game r5; accepted touch baseline (user camera report), emulator checks only for the remaining gates",
   "image": {
     "builder": "native/build_combined.py",
     "baseline_dir": "work/native-build",
@@ -15,7 +15,7 @@
     "extension_limit_bytes": 262144
   },
   "install": {
-    "package_name": "om3-games-bundle-buttons-r2",
+    "package_name": "om3-games-bundle-five-r5",
     "firmware_path": "card/DCOLYMP/E1479999.BIN",
     "caduceus": "v0.26.2",
     "release_dir": "vendor/caduceus-om3/releases/v0.26.2",
@@ -40,14 +40,16 @@
       "MINESWEEPER",
       "MINI MARIO",
       "BREAKOUT",
+      "FLAPPY",
       "BACK"
     ],
-    "back_index": 4,
+    "back_index": 5,
     "state_ids": {
       "2048": 2,
       "minesweeper": 3,
       "mario": 4,
-      "breakout": 5
+      "breakout": 5,
+      "flappy": 6
     },
     "host_sources": [
       "native/combined_host.s",
@@ -301,6 +303,58 @@
         "breakout-entry-freeze-hardware-retest"
       ],
       "validation_note": "Button-only revision; touch hook and gesture code removed after hardware freeze report."
+    },
+    {
+      "id": "flappy",
+      "title": "FLAPPY",
+      "state_id": 6,
+      "buffer": "mario_buffer",
+      "sources": [
+        "native/flappy_core.s",
+        "native/flappy_render.s",
+        "native/flappy_touch_reply.s"
+      ],
+      "assets": [
+        "native/flappy_assets.py"
+      ],
+      "tests": [
+        "native/test_flappy.py",
+        "native/test_flappy_touch_reply.py",
+        "native/test_flappy_outside.py"
+      ],
+      "validation": [
+        "work/flappy-touch-v2/validation/validation.json",
+        "work/flappy-touch-v2/touch-reply/validation.json",
+        "work/flappy-touch-v2/outside/validation.json"
+      ],
+      "controls": [
+        [
+          "Tap / OK / Up",
+          "Flap; one action per initial contact"
+        ],
+        [
+          "INFO",
+          "Restart"
+        ],
+        [
+          "MENU",
+          "Back to the launcher (release the finger first)"
+        ],
+        [
+          "Shutter half-press / display switch",
+          "Exit and cancel the timer"
+        ]
+      ],
+      "known_issues": [
+        "physical-controller event kinds unmodelled",
+        "touch recovery after LCD/EVF switch unverified",
+        "long-session camera stability unmeasured"
+      ],
+      "validation_note": "Accepted r5 touch build: 181 native touch events with matching replies/waits, 1750 physics cases, seven GUI scenarios, 14 outside-game snapshots. User reports the on-camera touch test is perfect; no event trace or endurance duration was supplied.",
+      "support_sources": [
+        "native/flappy_build.py",
+        "native/test_flappy_touch.py"
+      ]
     }
   ],
   "shared_evidence": [
@@ -308,16 +362,13 @@
     "work/combined-game/bundle-build.json"
   ],
   "docs": [
+    "native/INSTALL_FIVE_GAMES.md",
     "native/INSTALL_AND_RESTORE.md",
     "native/HARDWARE_RISK_REVIEW.md",
-    "native/MINES_STATUS.md",
+    "native/TOUCH_DEVELOPMENT_GUIDE.md",
     "native/COMBINING_GAMES.md",
     "native/BUNDLE_ARCHITECTURE.md",
-    "native/KNOWN_ISSUES.md",
-    "native/MARIO_ENRICHMENT_IDEAS.md",
-    "native/MARIO_STATUS.md",
-    "native/BREAKOUT_STATUS.md",
-    "native/GAMES_NEXT_DEVELOPMENT.md"
+    "native/KNOWN_ISSUES.md"
   ],
   "generated_sources_to_ship": [
     "work/combined-game/2048-host.s",

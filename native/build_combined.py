@@ -14,7 +14,14 @@ import assets_large
 from test2048 import reference
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'work/combined-game'
+FLAPPY_TOUCH='--flappy-touch' in sys.argv
+FLAPPY='--flappy' in sys.argv or FLAPPY_TOUCH
+COMPACT='--compact' in sys.argv or FLAPPY
+# Preserve the camera-tested r4 raw build in work/flappy-touch-repaired.
+OUT=ROOT/('work/flappy-touch-v2' if FLAPPY_TOUCH else ('work/flappy-buttons' if FLAPPY else ('work/compact-games' if COMPACT else 'work/combined-game')))
+if COMPACT:
+ import compact_assets
+ compact_assets.install(assets_large,mines_assets)
 BUILD=ROOT/'work/native-build'
 TC=ROOT/'work/toolchain'
 BASE, START=0x60021020,0x60f59800
@@ -30,6 +37,9 @@ source_paths=[ROOT/'native'/name for name in ('build_combined.py','combined_host
  'breakout_core.s','breakout_render.s','breakout_assets.py','test_breakout.py','combined_launcher.s','combined_launcher_assets.py','mines_core.s','mines_render.s','mines_assets.py',
  'mario_level.py','mario_core.s','mario_render.s','mario_assets.py','combined_bridge.s',
  'assets.py','assets_large.py','2048_large.s','test2048.py','test_mario_game.py','test_mario_core.py','test_mario_render.py','test_mines_game.py','test_combined_game.py')]
+if COMPACT: source_paths.append(ROOT/'native/compact_assets.py')
+if FLAPPY: source_paths += [ROOT/'native'/n for n in ('flappy_build.py','flappy_assets.py','flappy_core.s','flappy_render.s')]
+if FLAPPY_TOUCH: source_paths.append(ROOT/'native/flappy_touch_reply.s')
 sources={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
 def u32(a): return struct.unpack_from('<I',image,a-BASE)[0]
 def put32(a,v): struct.pack_into('<I',image,a-BASE,v)
@@ -44,16 +54,22 @@ def previous_jump(a):
 hooks={'original_update':previous_jump(0x611d04ec), 'original_pm':previous_jump(0x6125becc),
        'original_transition':previous_jump(0x610f6016),'queue_resume':0x610f48f5,'queue_entry':0x610f48ef,
        'original_end':0x60b1fed8,'paint_resume':0x610f7ff0,'bitmap':0x610f784f,'invalidate':0x610deaab}
-launcher_resources=launcher_assets.make(OUT)
+launcher_resources=launcher_assets.make(OUT,flappy=FLAPPY)
 mines_resources=mines_assets.make(OUT/'mines_assets.inc')
 mario_resources=mario_assets.make(OUT/'mario_assets.inc')
 breakout_resources=breakout_assets.make(OUT/'breakout_assets.inc')
 assert breakout_resources['max_output_bytes']<=mario_resources['capacity']
-resources=assets_large.make(OUT/'assets.inc')
+if FLAPPY:
+ import flappy_assets,flappy_build
+ flappy_resources=flappy_assets.make(OUT/'flappy_assets.inc',touch=FLAPPY_TOUCH)
+ assert flappy_resources['max_output_bytes']<=mario_resources['capacity']
+ flappy_build.prepare(ROOT,OUT,touch=FLAPPY_TOUCH)
+resources=assets_large.make(OUT/'assets.inc',compact=COMPACT)
 asset_text=(OUT/'assets.inc').read_text(encoding='ascii')
 asset_text=asset_text.replace('ARROWS MOVE  HOLD OK NEW'.ljust(32),'ARROWS MOVE  INFO NEW'.ljust(32)).replace('GAME OVER  HOLD OK NEW'.ljust(32),'GAME OVER  INFO NEW GAME'.ljust(32))
 (OUT/'assets.inc').write_text(asset_text,encoding='ascii')
 source=(ROOT/'native/2048_large.s').read_text(encoding='utf-8')
+if COMPACT: source='.set COMPACT_2048,1\n'+source
 old=''' mov GDESC,a0
  mov d0,(12,a0)
  mov GSELECT,a1
@@ -65,23 +81,34 @@ old=''' mov GDESC,a0
 assert source.count(old)==1
 (OUT/'2048-host.s').write_text(source.replace(old,'').replace('game_event:\n cmp 0x903e,d0\n beq restart\n jmp original_event\n','game_event:\n jmp original_event\n'),encoding='utf-8')
 (OUT/'original.inc').write_text((BUILD/'original.inc').read_text(encoding='utf-8'),encoding='utf-8')
-subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(OUT/'row.o'),str(ROOT/'native/combined_host.s')],check=True,cwd=OUT)
-subprocess.run([str(TC/'gas/as-new.exe'),'-o',str(OUT/'menu-row.o'),str(ROOT/'native/combined_menu.s')],check=True)
+subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(OUT/'row.o'),str(OUT/'flappy-host.s' if FLAPPY else ROOT/'native/combined_host.s')],check=True,cwd=OUT)
+subprocess.run([str(TC/'gas/as-new.exe'),'-o',str(OUT/'menu-row.o'),str(OUT/'flappy-menu.s' if FLAPPY else ROOT/'native/combined_menu.s')],check=True)
 subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(OUT/'game-host.o'),str(OUT/'2048-host.s')],check=True)
 for name in ('mario_core','mario_render','combined_bridge','mines_core','mines_render','combined_launcher','breakout_core','breakout_render'):
- subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(OUT/(name+'.o')),str(ROOT/'native'/(name+'.s'))],check=True)
+ subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(OUT/(name+'.o')),str(OUT/'flappy-bridge.s' if FLAPPY and name=='combined_bridge' else ROOT/'native'/(name+'.s'))],check=True)
+extra=[]
+if FLAPPY:
+ for name in ('flappy_core','flappy_render')+(('flappy_touch_reply',) if FLAPPY_TOUCH else ()):
+  obj=OUT/(name+'.o');extra.append(str(obj))
+  subprocess.run([str(TC/'gas/as-new.exe'),'-I',str(OUT),'-o',str(obj),str(ROOT/'native'/(name+'.s'))],check=True)
 hooks.update(MARIO_GAME_STATE=4,timer_create=0x6007662a,timer_delete=0x60076665,defer_call=0x600755ce,
              gui_trace=0x610fd345,gui_resume=0x610fd061,gui_next=0x610fd049)
+if FLAPPY_TOUCH:
+ hooks.update(flappy_touch_original=0x61294d13,flappy_touch_continue=0x61294e57,flappy_touch_dispatch=0x61294ed2)
 orig=json.loads((BUILD/'build.json').read_text())['original']
 targets={**{f'original_{k}':v for k,v in orig.items()},'facade':0x60b8696a,'original_bitmap_resume':0x610f7854}
 subprocess.run([str(TC/'ld/ld-new.exe'),'-Ttext',hex(START),'-e','games_string',
                 f'--defsym=original_string={original}', *[f'--defsym={k}={v}' for k,v in hooks.items()],
                 *[f'--defsym={k}={v}' for k,v in targets.items()],
-                '-o',str(OUT/'row.elf'),str(OUT/'row.o'),str(OUT/'menu-row.o'),str(OUT/'game-host.o'),*[str(OUT/(n+'.o')) for n in ('mario_core','mario_render','combined_bridge','mines_core','mines_render','combined_launcher','breakout_core','breakout_render')]],check=True)
+                '-o',str(OUT/'row.elf'),str(OUT/'row.o'),str(OUT/'menu-row.o'),str(OUT/'game-host.o'),*[str(OUT/(n+'.o')) for n in ('mario_core','mario_render','combined_bridge','mines_core','mines_render','combined_launcher','breakout_core','breakout_render')],*extra],check=True)
 subprocess.run([str(TC/'binutils/objcopy.exe'),'-O','binary','-j','.text',str(OUT/'row.elf'),str(OUT/'row.bin')],check=True)
 blob=(OUT/'row.bin').read_bytes(); pos=(START+len(blob)+3)&~3
 nm=subprocess.check_output([str(TC/'binutils/nm-new.exe'),str(OUT/'row.elf')],text=True)
 sy={s[2]:int(s[0],16) for line in nm.splitlines() if len(s:=line.split())==3}
+if FLAPPY:
+ assert u32(0x615fbd40)==0x61294d13
+ if FLAPPY_TOUCH: put32(0x615fbd40,sy['flappy_touch_repaired'])
+ else: assert not any(name in sy for name in ('flappy_touch','flappy_touch_repaired','flappy_contact','flappy_drain'))
 assert set(data(START,0x40000))=={255}
 image[START-BASE:START-BASE+len(blob)]=blob
 put32(site+1,(START-site)&0xffffffff)
@@ -138,6 +165,9 @@ put32(0x60045e9c,START+((pos-START+0x7ff)//0x800)*0x800)
 (OUT/'replay.mjs').write_text((BUILD/'replay.mjs').read_text(encoding='utf-8'),encoding='utf-8')
 digest=hashlib.sha256(image).hexdigest()
 (OUT/'build.json').write_text(json.dumps({'candidate_sha256':digest,'symbols':sy,'resources':resources,'mario_resources':mario_resources,'breakout_resources':breakout_resources,'mines_resources':mines_resources,'launcher_resources':launcher_resources,'extension_bytes':pos-START,'source_sha256':sources,
+ 'flappy_resources':flappy_resources if FLAPPY else None,
+ 'custom_game_touch':FLAPPY_TOUCH,
+ 'touch_terminal_kinds':[3,4,5] if FLAPPY_TOUCH else [],
  'status':'emulator-only raw main block; not an installable package'},indent=2),encoding='utf-8')
 
 print("Built combined raw image:",len(blob),"bytes",digest)

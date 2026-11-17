@@ -4,6 +4,16 @@
 .am33_2
 .text
 .include "original.inc"
+.ifdef COMPACT_2048
+ .global powers10,char_rows,blank_row
+ .set tile_digit_top,36
+ .set tile_digit_bottom,66
+ .set tile_digit_scale_y,6
+.else
+ .set tile_digit_top,40
+ .set tile_digit_bottom,55
+ .set tile_digit_scale_y,3
+.endif
 .global game_init,other_init,leave_game,game_info,game_event
 .global game_up,game_down,game_left,game_right,game_nav,game_bitmap
 .global game_transition
@@ -456,16 +466,16 @@ large_div96_done:
  cmp 6,d1
  bcs gap_line
  clr d0
- cmp 40,d1
+ cmp tile_digit_top,d1
  bcs style_done
- cmp 55,d1
+ cmp tile_digit_bottom,d1
  bcc style_done
- add -40,d1
+ add -tile_digit_top,d1
  clr d0
 large_div3:
- cmp 3,d1
+ cmp tile_digit_scale_y,d1
  bcs large_div3_done
- add -3,d1
+ add -tile_digit_scale_y,d1
  inc d0
  bra large_div3
 large_div3_done:
@@ -473,6 +483,10 @@ large_div3_done:
  inc d1
  mov d1,d0
 style_done:
+.ifdef COMPACT_2048
+ cmp 0,d0
+ beq background_line
+.endif
  mov d0,(8,sp)
  clr d3
 tile_column:
@@ -496,6 +510,19 @@ safe_tile:
  add d0,a2
  bra copy_tile
 gap_line:
+.ifdef COMPACT_2048
+ mov blank_row,a2
+ bra copy_board_line
+background_line:
+ mov tile_background_row,a2
+copy_board_line:
+ mov (a2),d0
+ mov (4,a2),a1
+ mov a3,a0
+ call copy_row,[],4
+ mov a0,a3
+ bra row_done
+.endif
  clr d3
 gap_column:
  mov gap_row,a2
@@ -553,6 +580,9 @@ large_hud_done:
  clr d3
 char_column:
  movbu (d3,a2),d0
+.ifdef COMPACT_2048
+ add -32,d0
+.endif
  mov d0,d1
  asl2 d0
  add d1,d0

@@ -188,6 +188,7 @@ br_paint_done:
  movm (sp),[d2,d3,a2,a3]
  ret [],4
 /* Set [d0,d1) in the scratch row; clip defensively. */
+.global br_span
 br_span:
  cmp 0,d0
  bge br_span_hi
