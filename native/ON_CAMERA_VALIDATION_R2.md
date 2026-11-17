@@ -1,5 +1,11 @@
 # Four-game r2: on-camera validation passed
 
+**Later report, 2026-11-16:** rare freezes after boot and touch exits, after the
+user followed the touch-probe removal procedure. The pass below records the
+initial session only. Sustained stability is now an open defect; a targeted
+local audit found no obvious leak but did not resolve it. No hardware fix has
+been verified.
+
 User-confirmed on the physical OM SYSTEM OM-3 after installing
 `om3-games-bundle-buttons-r2` on 2026-11-12.
 

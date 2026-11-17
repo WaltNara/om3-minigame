@@ -22,6 +22,14 @@ Thumbs.db
 
 # Local-only documentation (historical notes / status logs, not published)
 docs/research/
+docs/archive/
+docs/TOUCH_HANDOFF.md
+native/COMPACT_MEMORY_STATUS.md
+native/FLAPPY_STATUS.md
+native/FLAPPY_TOUCH_MISSES.md
+native/FLAPPY_TOUCH_REPAIR_STATUS.md
+native/R2_STABILITY_AUDIT.md
+native/TOUCH_FREEZE_R3.md
 native/BREAKOUT_STATUS.md
 native/GAMES_DEVELOPMENT_NOTES.md
 native/GAMES_NEXT_DEVELOPMENT.md
@@ -30,3 +38,28 @@ native/MARIO_STATUS.md
 native/MINES_STATUS.md
 native/SEPARATE_GAMES_STATUS.md
 native/SEPARATE_PANEL_PROBE.md
+
+# Withdrawn touch probes and historical experiment tooling (not shipped)
+native/flappy_touch.s
+native/build_touch_owner.py
+native/build_touch_probe.py
+native/build_touch_probe_c.py
+native/investigate_touch_startup.py
+native/make_touch_controls.py
+native/package_flappy.py
+native/package_flappy_repair.py
+native/package_touch_control_b.py
+native/package_touch_probe.py
+native/package_touch_probe_c.py
+native/package_touch_startup_control.py
+native/test_touch_owner.py
+native/test_touch_owner_abi.py
+native/test_touch_owner_control.py
+native/test_touch_owner_outside.py
+native/test_touch_probe.py
+native/test_touch_probe_c.py
+native/touch_owner.s
+native/touch_probe.s
+native/touch_probe_c.s
+native/touch_probe_checks.mjs
+native/touch_probe_c_checks.mjs

@@ -85,6 +85,14 @@ Each game is a module registered in `games.json` and linked by
   and graphics-buffer DMA lifetime are still hardware-open questions.
 - No touch experiments without a separate hardware probe; emulator SEND_EVENT
   injection does not emulate the E147 controller.
+  Follow the [touch development guide](../native/TOUCH_DEVELOPMENT_GUIDE.md):
+  establish delivery and gesture semantics before coordinate-based gameplay.
+- Consumed touch events must still complete the native application's reply
+  handshake. Test through the application queue; direct GUI injection missed
+  the r3 deadlock.
+- Test tap/double-tap endings as alternatives to release, not only after it.
+  The r4 contact latch stayed set on 1,4 and 1,5 sequences despite completing
+  every reply; r5 clears it on terminal kinds 3/4/5.
 - Never confuse the install vs restore `E1479999.BIN` source folders.
 - Record user hardware results separately from emulator results.
 
@@ -95,3 +103,18 @@ Each game is a module registered in `games.json` and linked by
 - `native/INSTALL_AND_RESTORE.md` — card layout, install, rollback.
 - `native/HARDWARE_RISK_REVIEW.md` — what is and isn't validated on hardware.
 - `native/KNOWN_ISSUES.md` — resolved input changes + remaining hardware checks.
+
+## Native implementation lessons
+
+- Verify CALL versus CALLS stack frames and saved registers with small native
+  probes before adding a new hook. Preserve MDR when the caller needs it;
+  multiplication can overwrite it. Link branch destinations and inspect disassembly.
+- Pass the existing graphics API uncached addresses (firmware-resident data
+  uses the +0x40000000 alias), keep RLE runs within scanlines, and preserve the
+  proven surfaces and unscaled draw calls. Derive buffer bounds before linking.
+- Prove entry, input, redraw and exit early. Keep emulator results and user
+  hardware confirmation distinct; instruction counts are not camera timings.
+
+Historical probes, stage-by-stage handoffs and research notes are deliberately
+not published in this repository; the accepted baseline and its current
+validation reports are linked above.

@@ -5,9 +5,11 @@ OM SYSTEM OM-3 (firmware 1.1), built on top of the
 [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) firmware patch.
 
 > ⚠️ **Experimental.** Installing modified firmware can brick a camera. Do it only
-> at your own risk, on a full battery, and keep the stock restore image. This code
-> is **emulator-tested**; the current release (r2) has also passed a user
-> on-camera check. See [`native/HARDWARE_RISK_REVIEW.md`](native/HARDWARE_RISK_REVIEW.md).
+> at your own risk, on a full battery, and keep the stock restore image. Emulator
+> checks are not hardware proof; the accepted five-game **r5** build additionally
+> has a user-reported good on-camera touch result. See
+> [`native/HARDWARE_RISK_REVIEW.md`](native/HARDWARE_RISK_REVIEW.md) and
+> [`native/TOUCH_DEVELOPMENT_GUIDE.md`](native/TOUCH_DEVELOPMENT_GUIDE.md).
 
 ## What's in the box
 
@@ -16,11 +18,20 @@ OM SYSTEM OM-3 (firmware 1.1), built on top of the
 | 2048 | arrow/dial move, INFO restarts, MENU/shutter exits |
 | Minesweeper | 8×8, first-click-safe, flood fill, flag |
 | Mini Mario | scrolling auto-runner, button jump |
-| Breakout | button-only paddle (touch removed in r2) |
+| Breakout | button-only paddle |
+| Flappy | slow tap-controlled flight; live distance; **the touch-enabled game** |
 
-All four share one Games launcher. The camera installs exactly **one** firmware
-image (`DCOLYMP/E1479999.BIN`), so the games are combined into a single image at
-build time — see [`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md).
+All five share one Games launcher. Only Flappy owns touch: a tap queues one flap
+and all consumed touch events complete the camera's native reply handshake. The
+other four keep stock touch behaviour; buttons work in all five. See
+[`native/TOUCH_DEVELOPMENT_GUIDE.md`](native/TOUCH_DEVELOPMENT_GUIDE.md) for the
+accepted implementation rules and validation commands.
+
+The camera installs exactly **one** firmware image (`DCOLYMP/E1479999.BIN`), so
+the games are combined into a single image at build time — see
+[`native/COMBINING_GAMES.md`](native/COMBINING_GAMES.md). Current accepted source
+build: `py -3 native/build_combined.py --flappy-touch` (raw image SHA256
+`a3b5e0aa720f3703f6d3adcf771edb855ac99d63c24c116816976ff37c203ed8`, five-r5).
 
 ## Dependency — referenced, not included
 
@@ -49,14 +60,14 @@ om3-minigames/
 ├── LICENSE                   # Apache-2.0 (this project)
 ├── NOTICE                    # provenance / dependency note
 ├── docs/
-│   ├── DEVELOPMENT.md        # interfaces & how to extend  ← start here
-│   └── research/             # historical design notes (not gameplay)
-├── native/                   # game source, build, tests, status docs
+│   └── DEVELOPMENT.md        # interfaces & how to extend  ← start here
+├── native/                   # game source, build, tests, docs
 │   ├── bundle/               # manifest-driven build & package framework
-│   ├── 2048*.s, mines_*.s, mario_*.s, breakout_*.s, combined_*.s
-│   ├── INSTALL_AND_RESTORE.md
+│   ├── 2048*.s, mines_*.s, mario_*.s, breakout_*.s, flappy_*.s, combined_*.s
+│   ├── INSTALL_FIVE_GAMES.md  # current five-game install / rollback
+│   ├── TOUCH_DEVELOPMENT_GUIDE.md  # touch event ownership / gesture rules
 │   ├── BUNDLE_ARCHITECTURE.md, COMBINING_GAMES.md
-│   └── …                     # status & risk docs
+│   └── HARDWARE_RISK_REVIEW.md, KNOWN_ISSUES.md, …
 ├── tools/desktop-prototypes/ # early desktop/guessing prototypes (historical)
 ├── vendor/                   # Caduceus (git-ignored; fetched separately)
 ├── work/                     # build intermediates & firmware (git-ignored)
@@ -89,10 +100,29 @@ Detailed references:
 ## Installing / restoring
 
 The built firmware + card files are distributed as a binary release
-(`om3-games-bundle-buttons-r2`). Follow
-[`native/INSTALL_AND_RESTORE.md`](native/INSTALL_AND_RESTORE.md). Short version:
-copy `card/` to the SD root, hold OK while powering on, wait for the lamp to
-blink, then delete `DCOLYMP/E1479999.BIN` from the card. Keep the `OM3MOD/` files.
+(`om3-games-bundle-five-r5`); binaries are **not** committed to this repository.
+Follow [`native/INSTALL_FIVE_GAMES.md`](native/INSTALL_FIVE_GAMES.md) (current
+five-game flow) or [`native/INSTALL_AND_RESTORE.md`](native/INSTALL_AND_RESTORE.md)
+(the earlier four-game reference). Short version: copy `card/` to the SD root,
+hold OK while powering on, wait for the lamp to blink, then delete
+`DCOLYMP/E1479999.BIN` from the card. Keep the `OM3MOD/` files. Never mix install
+and restore BINs.
+
+## Release notes — five-r5 (accepted touch baseline)
+
+- Fixes the r3 touch **deadlock** (missing native completion reply) and the r4
+  **missed taps** (stale contact latch when a gesture ended with kind 4/5).
+- Touch owns only the Flappy page; terminal kinds 3/4/5 clear contact, one flap
+  per initial contact, no payload retention or extra state.
+- Local gates: 181 touch events with 181 replies/waits returned, 1,750 physics
+  cases, 26 raster frames, seven GUI scenarios, 14 outside-game parity snapshots.
+  Camera: user reports the touch test is perfect; no event trace or endurance
+  duration was recorded.
+- Still open: E147's physical controller is unmodelled, long-session stability
+  and touch recovery after an LCD/EVF switch are unverified, and earlier rare
+  R2 freezes are a separate unresolved issue.
+- Earlier r3 is withdrawn; r4 (no freeze, missed taps) is the comparison
+  baseline; both are preserved as local-only release packages.
 
 ## License
 

@@ -1,4 +1,4 @@
-**Status update:** [r2 on-camera validation passed](ON_CAMERA_VALIDATION_R2.md), as confirmed by the user after installation. Earlier pending-retest statements below describe the pre-confirmation state. Long-session and instrumented hardware checks remain unverified.
+**2026-11-16 status:** The initial [short camera check passed](ON_CAMERA_VALIDATION_R2.md), but the user now reports rare freezes after boot and touch exits after removing the touch probe. A targeted local audit found no obvious game leak; 12 touch exits and 64 timer start/stop pairs passed locally. Hardware stability remains unresolved; do not describe this as harmless or fully validated.
 
 # Revision r2 hardware update
 

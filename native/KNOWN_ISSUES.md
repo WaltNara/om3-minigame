@@ -1,4 +1,4 @@
-**Status update:** [r2 on-camera validation passed](ON_CAMERA_VALIDATION_R2.md), as confirmed by the user after installation. Earlier pending-retest statements below describe the pre-confirmation state. Long-session and instrumented hardware checks remain unverified.
+**2026-11-16 status:** Rare hardware freezes are now reported after boot and touch exits, with the touch probe removed. The earlier short camera pass does not establish sustained stability. Targeted checks passed locally but remaining suspects and precautions are still open; root cause is unresolved.
 
 # Known issues and resolved input changes
 
