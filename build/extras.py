@@ -10,33 +10,32 @@ import manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SD_DIR = "work/shutter-sound/native"
-ENV = dict(os.environ, OM3_FLAPPY_BUILD=SD_DIR)
-
-
-def run(program, *args, env=ENV):
+def run(program, *args, env=None):
     print("==>", *args, flush=True)
     subprocess.run([program, *args], cwd=ROOT, env=env, check=True)
 
 
-def build():
+def build(flags):
     data = manifest.load()
     game = data["image"]
     output = ROOT / game["output_dir"]
     if not all((output / name).is_file() for name in ("row-main.bin", "build.json")):
         run(sys.executable, game["builder"], *game["builder_args"],
             env=dict(os.environ, **game["environment"]))
-    run(sys.executable, "shutter_sound/build_native.py")
+    run(sys.executable, "shutter_sound/build_native.py", *flags)
 
 
-def test():
+def test(diagnostics, flags):
+    directory = "diagnostics" if diagnostics else "native"
+    out = f"work/shutter-sound/{directory}"
+    env = dict(os.environ, OM3_FLAPPY_BUILD=out)
     if not (ROOT / "work/shutter-sound/audio-map.json").is_file():
         run("node", "shutter_sound/emulator/map_audio.mjs")
-    run("node", "shutter_sound/emulator/probe.mjs", "--choice",
-        f"--report={SD_DIR}/sound-preview.json")
-    run("node", "tests/test_picture_games.mjs")
+    run("node", "shutter_sound/emulator/probe.mjs", "--choice", *flags,
+        f"--report={out}/sound-preview.json")
+    run("node", "tests/test_picture_games.mjs", env=env)
     for name in ("test_flappy_touch_reply.py", "test_flappy.py", "test_flappy_outside.py"):
-        run(sys.executable, "tests/" + name)
+        run(sys.executable, "tests/" + name, env=env)
 
 
 def main():
@@ -44,14 +43,17 @@ def main():
     parser.add_argument("step", choices=("all", "build", "test", "package"), nargs="?", default="all")
     parser.add_argument("--include-local-sounds", action="store_true",
                         help="include the tested Ciallo and Man WAV files in the local archive")
+    parser.add_argument("--diagnostics", action="store_true",
+                        help="build a separate image with the on-camera audio readout")
     args = parser.parse_args()
+    flags = ["--diagnostics"] if args.diagnostics else []
     if args.step in ("all", "build"):
-        build()
+        build(flags)
     if args.step in ("all", "test"):
-        test()
+        test(args.diagnostics, flags)
     if args.step in ("all", "package"):
         local = ["--include-local-sounds"] if args.include_local_sounds else []
-        run(sys.executable, "shutter_sound/package_choice.py", *local)
+        run(sys.executable, "shutter_sound/package_choice.py", *flags, *local)
 
 
 if __name__ == "__main__":

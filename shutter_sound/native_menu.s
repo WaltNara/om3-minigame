@@ -5,6 +5,10 @@
 .global sound_choice, sound_cursor, sound_editing
 .extern native_set_variable, native_keys_resume, native_panel_id, native_gui_state
 .extern games_transition, es_load_sd
+.ifdef ES_DIAG
+.global sound_diagnostics
+.extern es_diag_draw
+.endif
 
 .set FOURTH_LABEL, 520
 .set FOURTH_VALUE, 1388
@@ -43,11 +47,36 @@ leave_row:
  clr d2
  movbu d2,(sound_focused)
  movbu d2,(sound_editing)
+.ifdef ES_DIAG
+ movbu d2,(sound_diagnostics)
+.endif
  bra publish
 end_edit:
  clr d2
  movbu d2,(sound_editing)
+.ifdef ES_DIAG
+ movbu d2,(sound_diagnostics)
+.endif
 write_value:
+.ifdef ES_DIAG
+ movbu (sound_diagnostics),d2
+ cmp 0,d2
+ beq write_sound_value
+ add -20,sp
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov a2,a0
+ call es_diag_draw,[d2,d3,a2,a3],20
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 20,sp
+ bra publish
+write_sound_value:
+.endif
  movhu (FOURTH_LABEL+6,a2),d3
  movbu (sound_editing),d2
  cmp 0,d2
@@ -98,11 +127,18 @@ es_menu_keys:
  movbu (sound_editing),d2
  cmp 0,d2
  bne edit_key
+.ifdef ES_DIAG
+ cmp 0x9014,d0                 /* INFO */
+ beq toggle_diagnostics
+.endif
  cmp 0x900c,d0                  /* OK */
  beq enter_edit
  cmp 0x900a,d0                  /* Right */
  bne stock_key
 enter_edit:
+.ifdef ES_DIAG
+ bclr 1,(sound_diagnostics)
+.endif
  movbu (sound_choice),d2
  movbu d2,(sound_cursor)
  clr d2
@@ -171,11 +207,22 @@ repaint:
 stock_key:
  jmp native_keys_resume
 
+.ifdef ES_DIAG
+toggle_diagnostics:
+ movbu (sound_diagnostics),d2
+ xor 1,d2
+ movbu d2,(sound_diagnostics)
+ bra repaint
+.endif
+
 es_menu_transition:
  cmp 0,d0
  beq continue_transition
  bclr 1,(sound_editing)
  bclr 1,(sound_focused)
+.ifdef ES_DIAG
+ bclr 1,(sound_diagnostics)
+.endif
 continue_transition:
  jmp games_transition
 
@@ -184,5 +231,8 @@ sound_cursor: .byte 0
 sound_focused: .byte 0
 sound_editing: .byte 0
 sound_error: .byte 0
+.ifdef ES_DIAG
+sound_diagnostics: .byte 0
+.endif
 .balign 4
 .include "native_labels.inc"

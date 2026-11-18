@@ -30,10 +30,12 @@ TX-done notification and rejects one audio registration. It checks subsequent
 playback and records balanced opens and closes, idle native copy and TX state,
 and released WAV buffer leases across repeated shots.
 
-On the preceding `23a591b4d8d3` image, the owner heard ES sound on the first
-shot or burst after boot, followed by standard silent playback. The menu
-still showed the selected sound. Repeated playback on the current image
-requires a camera check.
+On `23a591b4d8d3`, the owner heard ES sound on the first shot or burst after
+boot, followed by standard silent playback. The menu still showed the selected
+sound. The owner reported the same behavior on `ef4b4885dad7` after the cleanup
+change. Status image `3caaf37a7cd6` adds an INFO readout to the ES sound row
+to trace capture notifications and player state on the camera.
+[ES sound status](../shutter_sound/ES_STATUS.md)
 
 [Install and use Games and ES sound](../shutter_sound/TRIAL_NATIVE.md) ·
 [Sound file requirements](../shutter_sound/SOUND_FILES.md) ·

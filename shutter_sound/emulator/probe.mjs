@@ -43,7 +43,7 @@ try {
   if(![0,10,20].includes(renderFps))throw Error('renderer test supports 10 or 20 fps');
   const renderControl=args.includes('--render-control');
   const testChooser=args.includes('--choice');
-  const choiceDirectory='native';
+  const choiceDirectory=args.includes('--diagnostics')?'diagnostics':'native';
   const mute=args.includes('--mute');
   if(mute&&!renderFps)throw Error('--mute requires a renderer rate');
   let image=loadImage(), placement, renderer, chooser, card;

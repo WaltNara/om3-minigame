@@ -26,6 +26,20 @@
 
 .extern sd_buffer, sd_length, sd_loading, sd_lease
 
+.macro diag_count counter,reg
+.ifdef ES_DIAG
+ movbu (\counter),\reg
+ inc \reg
+ movbu \reg,(\counter)
+.endif
+.endm
+
+.macro es_gate code
+.ifdef ES_DIAG
+ mov \code,d1
+ movbu d1,(diag_gate)
+.endif
+.endm
 
 /* No flag from the audio interrupt is required to wake UI_OUT. Only the
  * custom playback interval uses a timed wait. Clear the event output first
@@ -69,6 +83,12 @@ stock_complete_resume:
 /* The stock ISR clears TX_OWNER and its callback clears TX_SEQUENCE.
  * These two native ownership records outlive the flag wakeup. */
 es_dispatch:
+.ifdef ES_DIAG
+ btst EXPOSURE_FLAG,d2
+ beq check_copy
+ diag_count diag_wake,d0
+check_copy:
+.endif
  movbu (copy_active),d0
  cmp 0,d0
  beq check_native_queue
@@ -93,11 +113,19 @@ es_dispatch:
  mov 2,d0
  movbu d0,(UI_BUSY)
  call ui_end,[],72
+.ifdef ES_DIAG
+ bra closed_copy
+.else
  bra released_copy
+.endif
 close_unstarted:
  /* The UI opened a handle but AUD_MAIN did not register a clip.
   * Sending 0x49 here would decrement an empty native playback count. */
  call ui_close_only,[],72
+.ifdef ES_DIAG
+closed_copy:
+ diag_count diag_close,d0
+.endif
 released_copy:
  clr d0
  movbu d0,(copy_polls)
@@ -116,6 +144,10 @@ check_native_queue:
  beq wait_more
  mov 3265,d0
  call get_drive,[],4
+.ifdef ES_DIAG
+ movbu d0,(diag_drive)
+.endif
+ es_gate 2
  cmp 30,d0
  beq check_player
  cmp 32,d0
@@ -124,6 +156,7 @@ check_player:
  movbu (copy_active),d0
  cmp 0,d0
  beq check_busy
+ es_gate 3
  movbu (sound_choice),d0
  movbu (playing_choice),d1
  cmp d1,d0
@@ -135,12 +168,15 @@ check_player:
  movbu d0,(copy_polls)
  bra wait_more
 check_busy:
+ es_gate 4
  movbu (UI_BUSY),d0
  cmp 0,d0
  bne wait_more
+ es_gate 5
  movbu (UI_OTHER_BUSY),d0
  cmp 0,d0
  bne wait_more
+ es_gate 6
  movbu (AUD_PLAY_COUNT),d0
  cmp 0,d0
  bne wait_more
@@ -157,6 +193,7 @@ preview_5d:
  mov wave_5d_bytes,d1
  bra set_preview
 preview_sd:
+ es_gate 7
  cmp 3,d0
  bcs wait_more
  cmp 5,d0
@@ -173,6 +210,8 @@ preview_sd:
 set_preview:
  mov a0,(preview_pointer)
  mov d1,(preview_bytes)
+ es_gate 8
+ diag_count diag_ask,d0
  movbu (sound_choice),d0
  movbu d0,(playing_choice)
  clr d0
@@ -186,6 +225,12 @@ close_lease:
 wait_more:
  jmp es_wait
 stock_exec:
+.ifdef ES_DIAG
+ btst EXPOSURE_FLAG,d2
+ beq resume_stock_exec
+ es_gate 1
+resume_stock_exec:
+.endif
  and 4,d2
  jmp ui_stock_exec
 
@@ -200,6 +245,7 @@ es_wave:
  mov d0,(WAV_POINTER)
  mov (preview_bytes),d0
  mov d0,(WAV_BYTES)
+ diag_count diag_open,d0
  mov (UI_PLAYER),d0
  mov d0,(copy_player)
  mov POLL_LIMIT,d0

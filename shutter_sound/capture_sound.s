@@ -5,6 +5,9 @@
 .global es_capture_main, es_capture_fast
 .extern capbuf_append, capbuf_taken_picture, sound_choice, ui_flag, set_flag
 .extern capbuf_main_resume, capbuf_fast_resume
+.ifdef ES_DIAG
+.extern diag_capture, diag_posted
+.endif
 
 es_capture_main:
  call notify_frame,[],4
@@ -22,6 +25,11 @@ notify_frame:
  movbu (sound_choice),d2
  cmp 0,d2
  beq done
+.ifdef ES_DIAG
+ movbu (diag_capture),d2
+ inc d2
+ movbu d2,(diag_capture)
+.endif
  add -20,sp
  mov d0,(4,sp)
  mov d1,(8,sp)
@@ -31,6 +39,14 @@ notify_frame:
  exth d0
  mov 16,d1
  call set_flag,[d2,d3,a2],40
+.ifdef ES_DIAG
+ cmp 0,d0
+ bne restore_registers
+ movbu (diag_posted),d2
+ inc d2
+ movbu d2,(diag_posted)
+restore_registers:
+.endif
  mov (4,sp),d0
  mov (8,sp),d1
  mov (12,sp),a0

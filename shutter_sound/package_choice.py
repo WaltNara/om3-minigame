@@ -9,7 +9,7 @@ import tempfile
 import zipfile
 
 from bank import decode
-from build_native import OUT, SD_MAX_BYTES, SOURCE, WORK
+from build_native import DIAG_OUT, OUT, SD_MAX_BYTES, SOURCE, WORK
 from memory import ROOT
 
 sys.path.insert(0, str(ROOT / "build"))
@@ -81,6 +81,13 @@ def package_trial(out, include_local_sounds):
     resources = results.get("Audio resource release", {})
     if resources.get("opened") != resources.get("closed") or resources.get("idle_checks", 0) < 20:
         raise ValueError("The sound replay must verify native audio resources are released")
+    diagnostics = meta.get("diagnostics", False)
+    if diagnostics:
+        rows = results.get("On-camera audio status", {}).get("rows", [])
+        if len(rows) != 4:
+            raise ValueError("The sound replay must verify the camera readout")
+        files["ES_STATUS.md"] = (SOURCE / "ES_STATUS.md").read_bytes()
+        files["evidence/audio-status.png"] = (out / "audio-status.png").read_bytes()
     files.update({"evidence/shutter-sound.json": proof,
                   "SOUND_SOURCES.md": (SOURCE / "SOURCES.md").read_bytes(),
                   "SOUND_FILES.md": (SOURCE / "SOUND_FILES.md").read_bytes(),
@@ -95,7 +102,8 @@ def package_trial(out, include_local_sounds):
             files[f"card/OM3MOD/{name.upper()}.WAV"] = preset["wav"]
     files["SHA256SUMS"] = "".join(f"{hashlib.sha256(blob).hexdigest()}  {name}\n"
                                   for name, blob in sorted(files.items())).encode("ascii")
-    dest = ROOT / "artifacts" / f"om3-es-native-trial-{digest[:12]}.zip"
+    kind = "status" if diagnostics else "trial"
+    dest = ROOT / "artifacts" / f"om3-es-native-{kind}-{digest[:12]}.zip"
     dest.parent.mkdir(exist_ok=True)
     # Publish only a completely written and verified ZIP. Each main image gets
     # its own filename, including rebuilds of a previously tested candidate.
@@ -115,5 +123,6 @@ def package_trial(out, include_local_sounds):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--include-local-sounds", action="store_true")
+    parser.add_argument("--diagnostics", action="store_true")
     args = parser.parse_args()
-    package_trial(OUT, args.include_local_sounds)
+    package_trial(DIAG_OUT if args.diagnostics else OUT, args.include_local_sounds)

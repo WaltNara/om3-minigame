@@ -179,6 +179,34 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
     captureSite(build.capture_sites[0], `Repeated 5D ${index + 1}`, build.presets['5D']);
   checks.push({label:'Audio start rejection', rejected, subsequent_playback:true});
   key('menu');
+  if (build.diagnostics) {
+    const rows = [];
+    lab.observe(notation(0x610cd5c4), (_h, r) => {
+      if (r.d0 !== 232 || !byte(sy.sound_diagnostics)) return;
+      for (let row = 0; row < 4; row++) {
+        const record = r.a0 + 148 + row * 124;
+        assert.equal(u16(record), 5);
+        assert.equal(u16(record + 868), 5);
+        rows[row] = [12, 880].map(offset => {
+          const text = Buffer.from(sim.read(record + offset, 48)).toString('utf16le');
+          return text.split('\0', 1)[0];
+        });
+      }
+    }, 'ES audio status');
+    key('info');
+    assert.equal(byte(sy.sound_diagnostics), 1, 'INFO opens the status readout');
+    assert.deepEqual(rows, [
+      ['Cap / Post / HLS', '11 11 00'],
+      ['Wake / Ask / Open', '11 10 10'],
+      ['Close / Drive / Gate', '10 1E 08'],
+      ['Busy / Play / TX', '00 00 00'],
+    ]);
+    saveDriveFrame('audio-status');
+    key('info');
+    assert.equal(byte(sy.sound_diagnostics), 0, 'INFO closes the status readout');
+    assert.equal(preset(), 1, 'readout preserves the chosen sound');
+    checks.push({label:'On-camera audio status', rows});
+  }
   choose(2);
   key('s1');
   captureSite(build.capture_sites[0], 'Single D850', build.presets.D850);

@@ -1,5 +1,6 @@
 """Build native Shutter sound settings and capture playback on the five-game r5 image."""
 
+import argparse
 import json
 from pathlib import Path
 import struct
@@ -10,6 +11,7 @@ from memory import BASE, WORK, aligned, sha
 
 
 OUT = WORK / 'shutter-sound' / 'native'
+DIAG_OUT = OUT.with_name('diagnostics')
 TC = WORK / 'toolchain'
 SOURCE = Path(__file__).resolve().parent
 CHOICES = ('Silent', '5D', 'D850', 'Ciallo', 'Man', 'Custom')
@@ -33,7 +35,8 @@ def labels():
             yield f'{table}_{i}: .short ' + ','.join(str(ord(c)) for c in label) + ',0'
 
 
-def build():
+def build(diagnostics=False):
+    out = DIAG_OUT if diagnostics else OUT
     layout = json.loads((SOURCE / 'layout.json').read_text())
     game_dir = WORK / 'current-games'
     meta = json.loads((game_dir / 'build.json').read_text())
@@ -80,7 +83,8 @@ def build():
                 capbuf_main_resume=0x60BBF690, capbuf_fast_resume=0x60BC22C0,
                 through_permit=0x601F1FBD, through_resume=0x601F1EA3,
                 fopen=0x608D4D22, fread=0x608D4EB7, fclose=0x608D4D2B,
-                sd_buffer=SD_BUFFER + 0x40000000, wav_limit=SD_MAX_BYTES)
+                sd_buffer=SD_BUFFER + 0x40000000, wav_limit=SD_MAX_BYTES,
+                shoot_post_resume=0x60B2AAD3)
     pos = WAV_START
     presets = {}
     for label, name, filename in (('5D', 'wave_5d', 'canon5d-burst.BIN'),
@@ -97,26 +101,30 @@ def build():
         presets[label] = dict(frames=clip['frames'], pcm_sha256=sha(clip['pcm']))
         pos = (pos + len(wav) + 15) & -16
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / 'native_labels.inc').write_text('\n'.join(labels()) + '\n', encoding='ascii')
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'native_labels.inc').write_text('\n'.join(labels()) + '\n', encoding='ascii')
     header = make_wav(bytes(4))[:-4]
     if len(header) != 112 or header.index(KEY) % 4:
         raise ValueError('Unexpected canonical WAV header')
-    (OUT / 'native_wav.inc').write_text(
+    (out / 'native_wav.inc').write_text(
         f'.set wav_key_offset,{header.index(KEY)}\nsd_wav_header: .byte '
         + ','.join(map(str, header)) + '\n', encoding='ascii')
     objects = []
     sources = [SOURCE / (name + '.s') for name in ('native_menu', 'choice', 'sd_choice', 'capture_sound')]
     sources.append(SOURCE.parent / 'native' / 'game_preview.s')
+    flags = []
+    if diagnostics:
+        flags = ['--defsym', 'ES_DIAG=1']
+        sources.append(SOURCE / 'diagnostics.s')
     for source in sources:
-        obj = OUT / (source.stem + '.o')
-        subprocess.run([TC / 'gas/as-new.exe', '-I', OUT, '-o', obj, source], check=True)
+        obj = out / (source.stem + '.o')
+        subprocess.run([TC / 'gas/as-new.exe', *flags, '-I', out, '-o', obj, source], check=True)
         objects.append(obj)
     imports = set()
     for obj in objects:
         imports.update(line.split()[-1] for line in subprocess.check_output(
             [TC / 'binutils/nm-new.exe', '-u', obj], text=True).splitlines())
-    elf, blob = OUT / 'shutter.elf', OUT / 'shutter.bin'
+    elf, blob = out / 'shutter.elf', out / 'shutter.bin'
     subprocess.run([TC / 'ld/ld-new.exe', '-Ttext', hex(pos), '-e', 'es_menu_keys',
                     *(f'--defsym={name}={defs[name]}' for name in sorted(imports & defs.keys())),
                     '-o', elf, *objects], check=True)
@@ -147,8 +155,9 @@ def build():
         patch(start, b'\xff' * len(data), data)
         return start
 
-    for address, title in ((0x6158797C, b'ES sound'),
-                           (0x61586FEC, b'OK to choose. Arrows to change. MENU to cancel.')):
+    help_text = (b'OK to choose. INFO for audio status.' if diagnostics else
+                 b'OK to choose. Arrows to change. MENU to cancel.')
+    for address, title in ((0x6158797C, b'ES sound'), (0x61586FEC, help_text)):
         rows = read(address, 36)
         if tuple(struct.unpack_from('<I', rows, i)[0] for i in (0, 12, 24)) != old_keys:
             raise ValueError('Unexpected Setup rows')
@@ -170,6 +179,8 @@ def build():
     branch(0x6017BB1A, 'f0678002dd28ba0500e010', 'es_wave')
     branch(0x60BBF68B, 'cd35f2f01c', 'es_capture_main')
     branch(0x60BC22BB, 'cddffc2014', 'es_capture_fast')
+    if diagnostics:
+        branch(0x60B2AACD, '420c872ebc00', 'es_diag_exposure')
     branch(0x60AE18AD, 'ddcf3afafff038', 'es_end_wait')
     branch(0x60ADCCA6, '430c421c0c', 'es_rewind_copy')
     branch(0x601F1E9E, 'cd1f01e010', 'game_preview_permit')
@@ -185,10 +196,14 @@ def build():
                   game_preview_gate=0x601F1E9E,
                   wave_start=WAV_START, wave_end=end,
                   scope='Native Setup labels and CapBuf requests for Silent Single and Silent Sequential')
-    (OUT / 'row-main.bin').write_bytes(image)
-    (OUT / 'build.json').write_text(json.dumps(output, indent=2) + '\n', encoding='utf-8')
-    print(f"Built {output['candidate_sha256']} in {OUT}")
+    if diagnostics:
+        output['diagnostics'] = True
+    (out / 'row-main.bin').write_bytes(image)
+    (out / 'build.json').write_text(json.dumps(output, indent=2) + '\n', encoding='utf-8')
+    print(f"Built {output['candidate_sha256']} in {out}")
 
 
 if __name__ == '__main__':
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--diagnostics', action='store_true')
+    build(parser.parse_args().diagnostics)
