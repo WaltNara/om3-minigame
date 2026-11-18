@@ -36,6 +36,18 @@ For a future drag game, establish coordinate layout, jitter and terminal sequenc
 first. Track bounded latest coordinates, update on the GUI tick, and cancel on exit.
 The successful tap test does not validate drag control or justify restoring old Breakout code.
 
+## Full-menu candidate
+
+The Extras host reuses the r5 Flappy handler and timer. It checks that the native
+Setup panel still owns a valid paint target before accepting a game touch. The
+same 14 protocol scenarios now run through either launcher. For Extras, set
+`OM3_FLAPPY_BUILD=work/menu-extension/games` after building that candidate.
+Its replay observed 181 replies and 181 returned waits for 181 events. Fresh
+touches on the stock Setup list resumed stock handling after an interrupted
+gesture. The earlier physical acceptance result applies to r5. The new host's
+hardware touch behavior and recovery after switching displays remain open.
+[Full-menu implementation and replay](../menu_extension/README.md)
+
 ## Verification and release
 
 Build and validate with `py -3 build/build.py`. For individual checks, set

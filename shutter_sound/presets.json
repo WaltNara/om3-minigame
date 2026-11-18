@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "default": "silent",
+  "silent": {"id": "silent", "label": "Off / Silent (original)", "bank": null},
+  "sources": [
+    {
+      "id": "canon5d", "label": "Canon 5D", "kind": "camera",
+      "file": "work/shutter-sound/sources/canon5d.mp3",
+      "download": "https://cdn.freesound.org/previews/270/270435_3177988-hq.mp3",
+      "source": "https://freesound.org/people/chrisvink/sounds/270435/",
+      "creator": "chrisvink", "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "9babc4a16f12c5436446a373ca3ebe1033cdd01e0572389846b44368ddcfe543",
+      "description": "Author identifies Canon EOS 5D Mark II or III; exact model uncertain. Public HQ MP3 preview, not original WAV."
+    },
+    {
+      "id": "nikond850", "label": "Nikon D850", "kind": "camera",
+      "file": "work/shutter-sound/sources/nikond850.mp3",
+      "download": "https://cdn.freesound.org/previews/567/567228_2022033-hq.mp3",
+      "source": "https://freesound.org/people/matikuki/sounds/567228/",
+      "creator": "matikuki", "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "4b8de57ad7182fe40e254060a38be01270a111d2c56883e6017cc14d7cc44a01",
+      "description": "Author identifies Nikon D850, single shots and 7 fps continuous, recorded with Zoom H4n Pro. Public HQ MP3 preview."
+    },
+    {"id": "ciallo", "label": "Ciallo", "kind": "personal", "file": "shutter_sound/Ciallo.m4a", "license": "user-supplied; personal use; redistribution permission unspecified"},
+    {"id": "man", "label": "Man", "kind": "personal", "file": "shutter_sound/man.MP3", "license": "user-supplied; personal use; redistribution permission unspecified"}
+  ]
+}

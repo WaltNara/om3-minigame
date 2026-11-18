@@ -1,8 +1,13 @@
-# OM-3 Minigames
+# OM-3 Extras
 
-Five native games inside **Picture Mode > Games** on the OM SYSTEM OM-3,
-firmware 1.1 (E147 build 1100), built on
+Five native games and selectable electronic shutter sounds for the OM SYSTEM
+OM-3, firmware 1.1 (E147 build 1100), based on
 [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) v0.26.2.
+
+Open **MENU → Setup → page 2, Information Record → Extras**. Choose
+**Games** or **Shutter sound**. The games use the camera's full menu while
+the stock live-view stop is requested. MENU backs up one level. A shutter
+half-press returns to shooting.
 
 | Game | Controls |
 | --- | --- |
@@ -12,36 +17,36 @@ firmware 1.1 (E147 build 1100), built on
 | Breakout | Left/right paddle; OK launches |
 | Flappy | Tap or Up/OK; slow pace, variable pipe spacing, live distance |
 
-MENU returns to the launcher; shutter leaves Games. Only Flappy owns touch.
-**r5 is the accepted baseline:** the user reports a perfect camera touch test.
-See [current status and limits](docs/STATUS.md).
+Only Flappy uses touch. The earlier r5 Picture Mode build remains the
+camera-tested touch baseline. [Current status and limits](docs/STATUS.md)
 
-Modified firmware carries installation risk. Use the supported model/version,
-a charged battery, and keep stock rollback. Read the
-[installation guide](docs/INSTALL_FIVE_GAMES.md) before installing.
-Firmware and dependencies are kept locally and are not committed here.
+**Shutter sound** offers Silent, 5D, D850, Ciallo, Man, and Custom. Press OK
+to preview and select a valid sound, then use the camera's Silent Single
+drive mode. The last three choices load from `OM3MOD` on the SD card. The
+combined build is a camera trial, with menu and playback tested in OM-Emu.
 
 ## Start here
 
-- Install/play: [installation and controls](docs/INSTALL_FIVE_GAMES.md).
-- Build/change games: [development guide](docs/DEVELOPMENT.md).
-- Touch: [working implementation and lessons](docs/TOUCH_DEVELOPMENT_GUIDE.md).
-- Limits: [status](docs/STATUS.md), [hardware review](docs/HARDWARE_RISK_REVIEW.md).
+- [Install, use Extras, and restore stock](shutter_sound/TRIAL_SD.md)
+- [Sound filenames, format, size limits, and conversion](shutter_sound/SOUND_FILES.md)
+- [Build and test the latest image](docs/DEVELOPMENT.md)
+- [Touch development guide](docs/TOUCH_DEVELOPMENT_GUIDE.md)
+- [Earlier r5 Picture Mode install](docs/INSTALL_FIVE_GAMES.md)
 
 After setting up the external inputs in the development guide:
 
 ```powershell
-py -3 build/build.py                     # five-game build + current validation
-py -3 build/build.py --verify-existing   # recheck hashes and reports
-py -3 build/package.py --dry-run         # verify packaging inputs
-py -3 build/package.py --name my-release # create a NEW local package
+py -3 shutter_sound/prepare_presets.py --fetch --public-only
+py -3 build/extras.py all
 ```
 
 ## Layout
 
 ```text
 build/                 manifest, build/test driver, packager, verifier
+menu_extension/        Setup page host, launcher and menu replays
 native/                camera assembly, assets, low-level build/setup
+shutter_sound/         native player, SD loader, format converter and audio replay
 tests/                native/emulator scripts and source-only checks
 docs/                 installation, development, status, touch guide
    architecture/       integration contracts
@@ -56,8 +61,9 @@ tools/
 and packages. Private historical notes stay in ignored `docs/archive/` and
 `docs/research/`. See [organization decisions](docs/REPOSITORY.md).
 
-The manifest inventories games and drives build/test/package commands. Native
-linking and dispatch remain explicit; adding a manifest entry alone adds no game.
+The manifest supplies the reusable r5 game payload. The Extras builder links
+that payload into the Setup menu and adds the SD sound feature. Firmware,
+generated packages, and personal audio files stay out of Git.
 
 ## License
 

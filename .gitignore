@@ -13,6 +13,10 @@ __pycache__/
 *.zip
 *.sha256
 
+# Personal audio originals (kept locally; not licensed for source publication)
+shutter_sound/Ciallo.m4a
+shutter_sound/man.MP3
+
 # OS / editor
 .DS_Store
 Thumbs.db

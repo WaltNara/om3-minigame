@@ -1,5 +1,14 @@
 # Repository organization
 
+The current release workflow starts at `build/extras.py`. It uses the
+manifest and the accepted r5 game payload, links the Setup page host in
+`menu_extension/`, and builds the native audio and SD-file loader in
+`shutter_sound/`. Tests and packaging use the final image's hash. See the
+[developer workflow](DEVELOPMENT.md) and
+[Extras install guide](../shutter_sound/TRIAL_SD.md).
+
+## Earlier r5 reorganization
+
 The supplied HTML review correctly found a four-game default behind a five-game
 README, incompatible validation formats, and packaging that required ignored
 notes. The current `build/` workflow fixes these together.

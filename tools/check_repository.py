@@ -14,7 +14,8 @@ import manifest
 def main():
     names = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard'], cwd=ROOT, text=True).splitlines()
     paths = {ROOT / n for n in names if (ROOT / n).is_file()}
-    forbidden = [p for p in paths if p.suffix.lower() in ('.bin', '.zip', '.omsd', '.o', '.elf')]
+    forbidden = [p for p in paths if p.suffix.lower() in ('.bin', '.zip', '.omsd', '.o', '.elf',
+                                                         '.wav', '.m4a', '.mp3')]
     if forbidden:
         raise ValueError('generated binaries in public source: ' + str(forbidden))
     for p in paths:

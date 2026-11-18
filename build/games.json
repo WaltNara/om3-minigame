@@ -410,6 +410,7 @@
     "tests/test_combined_game.py",
     "tests/test_compact_buffers.py",
     "tests/test_emulator.py",
+    "tests/flappy_entry.py",
     "tests/test_flappy.py",
     "tests/test_flappy_outside.py",
     "tests/test_flappy_touch.py",

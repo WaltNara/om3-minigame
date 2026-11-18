@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "model": "E147",
+  "firmware": "1.1",
+  "stock_main_sha256": "5e8d376e9111a44ac0352f26030d7c1b17026d42c45f3600cfa02a0e8c5b7d59",
+  "r5_main_sha256": "a3b5e0aa720f3703f6d3adcf771edb855ac99d63c24c116816976ff37c203ed8",
+  "extras_main_sha256": "2912d4c11c58ed2056b33dd5fd14f89a2b37df4d43ba2caab95ed28bdc057fea",
+  "notation_base": "0x50000000",
+  "runtime_base": "0x60021020",
+  "functions": {
+    "sound_getter": {"notation": "0x50b6e3ea", "expected": "fca0e49a3660b000"},
+    "play": {"notation": "0x50b6e825", "expected": "cff0f8feec979287"},
+    "capture": {"notation": "0x50b9d8a0", "expected": "92838e562c1401f1"},
+    "capture_fast": {"notation": "0x50ba0f7a", "expected": "92cd350c000018a0"},
+    "resource_size": {"notation": "0x501b6526", "expected": "9a001ca002c81da0"},
+    "resource_fetch": {"notation": "0x5015ab05", "expected": "fac00004fcc80000"},
+    "copy_call": {"notation": "0x50abb445", "expected": "dda46452eff01cdf"}
+  },
+  "globals": {
+    "sound_index_owner": "0xa32da428",
+    "sound_index": "0xa32da42c",
+    "wave_pointer": "0xa32da344",
+    "wave_length": "0xa32da348",
+    "sound_nand": "0x4e3e0000"
+  },
+  "candidate_region": {"offset_start": "0x2fdfd0", "offset_end": "0x335fe0", "status": "erased in r5; loader coverage and ownership unproven"},
+  "games_region": {"runtime_start": "0x60f59800", "limit_bytes": 262144, "reserve_bytes": 16384},
+  "abi_status": "function and caller review pending; not a patch manifest"
+}

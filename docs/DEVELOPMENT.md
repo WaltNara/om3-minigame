@@ -33,33 +33,36 @@ helpers, before `test_emulator.py seed` and `validate`.
 
 ## Current workflow
 
-Run from the repository root:
+Prepare the built-in 5D and D850 WAVs once. FFmpeg must be on PATH, or pass its
+location with `--ffmpeg`. The public build uses the pinned downloads and does
+not need personal audio.
 
 ```powershell
 py -3 tools/check_repository.py
-py -3 build/build.py
-py -3 build/build.py --verify-existing
-py -3 build/package.py --dry-run
-py -3 build/package.py --name my-new-release
+py -3 shutter_sound/prepare_presets.py --fetch --public-only
+py -3 build/extras.py all
 ```
 
-`build/games.json` selects `--flappy-touch`, `work/current-games`, current tests,
-docs and evidence. Builder and tests receive the same output path. The driver
-writes `bundle-build.json` after checking image/source/report hashes and the
-256 KiB loaded budget. Known native report success formats are accepted through
-a shared validator; an explicit matching image hash is required.
+`build/extras.py` also accepts `build`, `test`, or `package`. It obtains the
+linked r5 game payload in `work/current-games`, adds the full Setup menu host,
+then builds `work/shutter-sound/sd/row-main.bin`. The test step checks the six
+chooser entries, native audio, SD file rejection, all five games and the
+Flappy touch and outside-game regressions. Packaging checks all reports against
+the exact candidate hash. It writes `artifacts/om3-es-sd-trial-<hash>.zip` with
+the firmware image, matching card files, a stock restore, and the install guide.
 
-Current checks cover Flappy physics/render/playability, GUI exits, touch protocol
-and outside-game parity. They do not claim exhaustive fresh coverage of the four
-other games. Historical per-game scripts remain in `tests/`; see its README.
+To include the supplied personal sounds in a local install package, put
+`Ciallo.m4a` and `man.MP3` in `shutter_sound/`, then use:
 
-The reorganized build must match accepted r5 raw bytes. Source-path metadata
-changes. The sealed r5 source snapshot, package and rollback stay untouched.
-Future gameplay changes need separate camera checks. Packaging uses published
-source/docs plus external inputs and generated evidence; it preserves source
-paths, checks the firmware container/restore and reads back ZIP hashes. Choose a
-new name; releases are never overwritten. Local packages contain firmware and
-must not be committed or uploaded as part of source maintenance.
+```powershell
+py -3 shutter_sound/prepare_presets.py --fetch
+py -3 build/extras.py all --include-local-sounds
+```
+
+The [current install guide](../shutter_sound/TRIAL_SD.md) covers the SD
+layout and stock restore. Keep trial ZIPs, firmware and personal audio
+local. Use [the r5 workflow](architecture/BUNDLE_ARCHITECTURE.md) and
+`build/build.py` for the earlier Picture Mode build.
 
 ## Adding/changing a game
 

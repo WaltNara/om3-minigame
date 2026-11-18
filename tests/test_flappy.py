@@ -4,11 +4,12 @@ import sys as _sys
 from pathlib import Path as _Path
 _sys.path[:0] = [str(_Path(__file__).resolve().parents[1] / "native"), str(_Path(__file__).resolve().parents[1] / "tests")]
 import json,os,struct,subprocess,random
+from flappy_entry import flappy_entry, replay_for_host
 from mines_assets import FONT
 from pathlib import Path
 R=Path(__file__).resolve().parents[1];G=R/os.environ.get('OM3_FLAPPY_BUILD','work/flappy-buttons');O=G/'validation';B=R/'work/native-build'
 O.mkdir(exist_ok=True);meta=json.loads((G/'build.json').read_text());s=meta['symbols']
-base=(B/'replay.mjs').read_text()
+base=replay_for_host((B/'replay.mjs').read_text(),meta)
 env=dict(os.environ,OM_EMU_MODEL='E147')
 for k in ('WATCH','NCALL','NOUT','GAME_STATE','GAME_GC','WRANGE','WSTACK'):env.pop(k,None)
 def replay(name,script,source=base,extra=None):
@@ -126,11 +127,12 @@ print('PASS native:',len(cases),'physics ticks,',len(frames),'frames; 1500-tick 
 touch_enabled=meta.get('custom_game_touch',False)
 if not touch_enabled:assert not any(k in s for k in ('flappy_touch','flappy_touch_repaired','flappy_contact','flappy_drain'))
 raw=(G/'row-main.bin').read_bytes()
-assert struct.unpack_from('<I',raw,0x615fbd40-0x60021020)[0]==(s['flappy_touch_repaired'] if touch_enabled else 0x61294d13)
+touch_handler=s.get('menu_touch',s.get('flappy_touch_repaired')) if touch_enabled else 0x61294d13
+assert struct.unpack_from('<I',raw,0x615fbd40-0x60021020)[0]==touch_handler
 source=base.replace('  log.push(e);',f"  e.flight=Array.from({{length:9}},(_,i)=>u32({s['flappy_state']}+4*i)); e.game=rd({s['games_state']},1)[0];e.pending=rd({s['flappy_pending']},1)[0];e.timer=u16({s['mario_handle']});\n  log.push(e);")
 source=source.replace("  else if (t.startsWith('hold:'))","  else if(t.startsWith('gui-touch:')){const [k,x,y]=t.slice(10).split(',').map(Number);if(!s.touch_index){for(let i=1;i<=334;i++)if(lab.message_for(i)===0x9100){s.touch_index=i;break;}}s.post_touch(k,x,y);}\n  else if(t==='evf'){s.display_input('eye',1);}\n  else if (t.startsWith('hold:'))")
 source=source.replace('curStep = t; s.idle_slice(lab.lab_time() + 1200e6)','curStep = t; s.idle_slice(lab.lab_time() + 250e6)')
-entry='s1 ok ok '+('down '*13)+'ok '+('down '*4)+'ok '
+entry=flappy_entry(meta)
 touch='gui-touch:1,450,300 gui-touch:3,450,300 '
 shots=O.relative_to(R).as_posix()+'/'
 scripts=dict(play=entry+f'shot:{shots}ready.png ok up ok info '+f'shot:{shots}reset.png ok wait wait '+f'shot:{shots}flight.png menu s1',
@@ -151,10 +153,10 @@ for name,script in scripts.items():
         assert held['game']==6 and held['flight'][1]>0,held
     elif name=='restart':
         assert any(e['flight'][4]==2 for e in log)
-        restarted=next(e for e in log if e['step']=='up')
+        restarted=next(e for e in log[log.index(entered):] if e['step']=='up')
         assert restarted['game']==6 and restarted['flight'][4]==1 and 0<restarted['flight'][5]<5
     elif name=='menu':
-        exited=next(e for e in log if e['step']=='menu')
+        exited=next(e for e in log[log.index(entered):] if e['step']=='menu')
         assert exited['game']==1 and exited['timer']==0
     elif name=='stock_touch':
         ev=[e for e in log if e['step'].startswith('gui-touch:')]
