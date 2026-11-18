@@ -75,6 +75,12 @@ def package_trial(out, include_local_sounds):
     recovery = results.get("TX completion loss", {})
     if recovery.get("dropped") != 1 or not recovery.get("subsequent_playback"):
         raise ValueError("The sound replay must verify playback after a lost TX notification")
+    start = results.get("Audio start rejection", {})
+    if start.get("rejected") != 1 or not start.get("subsequent_playback"):
+        raise ValueError("The sound replay must verify recovery after an audio start rejection")
+    resources = results.get("Audio resource release", {})
+    if resources.get("opened") != resources.get("closed") or resources.get("idle_checks", 0) < 20:
+        raise ValueError("The sound replay must verify native audio resources are released")
     files.update({"evidence/shutter-sound.json": proof,
                   "SOUND_SOURCES.md": (SOURCE / "SOURCES.md").read_bytes(),
                   "SOUND_FILES.md": (SOURCE / "SOUND_FILES.md").read_bytes(),

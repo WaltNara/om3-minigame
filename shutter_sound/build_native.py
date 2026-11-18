@@ -72,6 +72,7 @@ def build():
                 ui_stock_exec=0x6017B861, ui_request=0x6017B9DE,
                 ui_resource_size=0x601D7546, ui_size_resume=0x6017BB25,
                 ui_wave_resume=0x6017BB88, get_drive=0x603F0111, ui_end=0x6017BD85,
+                ui_close_only=0x6017BDAF,
                 audio_wait=0x60A8537C, audio_end_resume=0x60AE18B4,
                 stock_prepare_player=0x60ADE989,
                 copy_resume=0x60ADCCAB,

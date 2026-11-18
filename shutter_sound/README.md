@@ -16,7 +16,9 @@ Setup row, **ES sound**. The selection lasts for the powered session.
   cursor before the next refill. The transport drains audio already queued
   for hardware. UI_OUT closes the player after the native transmitter
   releases ownership. The tests cover repeated starts after a lost TX-done
-  notification, byte-matched PCM and a burst with a complete final tail.
+  notification or rejected audio registration, byte-matched PCM and a burst
+  with a complete final tail. Each completed playback must leave the native
+  audio handles, copy task, transmitter and WAV buffer lease idle.
   [Sound file guide](SOUND_FILES.md)
 
 ## Earlier trials and research

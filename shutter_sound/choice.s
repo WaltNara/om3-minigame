@@ -3,9 +3,10 @@
 .am33_2
 .text
 .global es_dispatch, es_wave, es_wait, es_stock_complete, es_end_wait
+.global copy_active, copy_closing, copy_polls
 .extern sound_choice
 .global es_prepare_player, es_rewind_copy
-.extern ui_end, stock_prepare_player, copy_resume, audio_wait, audio_end_resume
+.extern ui_end, ui_close_only, stock_prepare_player, copy_resume, audio_wait, audio_end_resume
 .extern ui_flag, ui_wait_resume, ui_complete_resume, ui_stock_exec, ui_request
 .extern ui_resource_size, ui_size_resume, ui_wave_resume
 .extern wave_5d, wave_5d_bytes, wave_d850, wave_d850_bytes
@@ -19,6 +20,7 @@
 .set WAV_POINTER, 0xa32da344
 .set WAV_BYTES, 0xa32da348
 .set EXPOSURE_FLAG, 16
+.set POLL_LIMIT, 48
 
 .extern get_drive
 
@@ -27,13 +29,19 @@
 
 /* No flag from the audio interrupt is required to wake UI_OUT. Only the
  * custom playback interval uses a timed wait. Clear the event output first
- * because a timeout leaves the previous event word in place. */
+ * because a timeout leaves the previous event word in place. A stuck
+ * transmitter keeps ownership, but stops periodic wakes after the budget. */
 es_wait:
  clr d0
  mov d0,(36,sp)
  movbu (copy_active),d0
  cmp 0,d0
  beq wait_forever
+ movbu (copy_polls),d0
+ cmp 0,d0
+ beq wait_forever
+ add -1,d0
+ movbu d0,(copy_polls)
  mov 32,d0
  bra wait_native
 wait_forever:
@@ -77,13 +85,22 @@ es_dispatch:
  movbu (UI_BUSY),d0
  cmp 0,d0
  beq released_copy
+ movbu (AUD_PLAY_COUNT),d0
+ cmp 0,d0
+ beq close_unstarted
  mov 1,d0
  movbu d0,(copy_closing)
  mov 2,d0
  movbu d0,(UI_BUSY)
  call ui_end,[],72
+ bra released_copy
+close_unstarted:
+ /* The UI opened a handle but AUD_MAIN did not register a clip.
+  * Sending 0x49 here would decrement an empty native playback count. */
+ call ui_close_only,[],72
 released_copy:
  clr d0
+ movbu d0,(copy_polls)
  movbu d0,(copy_closing)
  movbu d0,(copy_active)
  /* If the final period was already queued, replay the newest request now. */
@@ -114,6 +131,8 @@ check_player:
  mov (copy_generation),d0
  inc d0
  mov d0,(copy_generation)
+ mov POLL_LIMIT,d0
+ movbu d0,(copy_polls)
  bra wait_more
 check_busy:
  movbu (UI_BUSY),d0
@@ -183,6 +202,8 @@ es_wave:
  mov d0,(WAV_BYTES)
  mov (UI_PLAYER),d0
  mov d0,(copy_player)
+ mov POLL_LIMIT,d0
+ movbu d0,(copy_polls)
  mov 1,d0
  movbu d0,(copy_active)
  mov a2,a0
@@ -267,6 +288,7 @@ end_wait_resume:
 
 copy_active: .byte 0
 copy_closing: .byte 0
+copy_polls: .byte 0
 playing_choice: .byte 0
 .balign 4
 copy_generation: .long 0

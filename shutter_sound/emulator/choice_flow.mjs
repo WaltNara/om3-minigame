@@ -44,6 +44,23 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   const cursor = () => byte(sy.sound_cursor);
   const notation = address => address - 0x10021020;
   const u16 = at => Buffer.from(sim.read(at, 2)).readUInt16LE();
+  const resources = {opened:0, closed:0, idle_checks:0};
+  for (const [name, at] of Object.entries({opened:0x60ade7b2, closed:0x60ade830})) {
+    lab.observe(notation(at), (_h, r) => { if ((r.d0 | 0) >= 0) resources[name]++; }, name);
+  }
+  const checkIdle = () => {
+    assert.equal(resources.opened, resources.closed, 'native audio handles closed');
+    for (const [name, at] of Object.entries({
+      ui_busy:0xa32da3a8, play_count:0x62b43dac, active_streams:0x62b43dad,
+      copy_count:0x62b43b14, player_one:0x62b43db8, player_two:0x62b43e64,
+      sd_loading:sy.sd_loading, sd_lease:sy.sd_lease, copy_active:sy.copy_active,
+      copy_closing:sy.copy_closing, copy_polls:sy.copy_polls,
+    })) assert.equal(byte(at), 0, name);
+    assert.equal(sim.u32(0x62b43c30), 0, 'TX object released');
+    assert.equal(sim.u32(0x62b43f80), 0, 'TX sequence released');
+    assert.equal(s.audio_hw.status().port.running, false);
+    resources.idle_checks++;
+  };
   const captureFixture = site => {
     const record = lab.alloc(new Uint8Array(512), 16);
     const owner = lab.alloc(new Uint8Array(512), 16);
@@ -69,8 +86,7 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
     const pcm = pcmSince(index);
     const bytes = (expected?.frames ?? 0) * 4;
     assert.equal(pcm.length, Math.ceil(bytes / 768) * 768, label);
-    assert.equal(byte(0xa32da3a8), 0, 'UI_OUT releases the clip');
-    assert.equal(s.audio_hw.status().port.running, false);
+    checkIdle();
     if (expected) {
       assert.equal(sha(pcm.subarray(0, bytes)), expected.pcm_sha256, label);
       assert.ok(pcm.subarray(bytes).every(v => v === 0));
@@ -143,6 +159,25 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   captureSite(build.capture_sites[0], 'Single 5D 2', build.presets['5D']);
   captureSite(build.capture_sites[0], 'Single 5D 3', build.presets['5D']);
   checks.push({label:'TX completion loss', dropped, subsequent_playback:true});
+  // Reject 0x41 after OPEN succeeds. Closing the unstarted handle must not
+  // decrement the native play count or prevent the next capture from playing.
+  const seqPlay = 0x60ae12eb;
+  const playHook = lab.hooks.get(seqPlay);
+  let rejected = 0;
+  lab.hook(notation(seqPlay), (h, r) => {
+    rejected++;
+    h.finish(r, {d0:1});
+  }, 'reject audio registration');
+  try {
+    captureSite(build.capture_sites[0], 'Rejected audio registration', null);
+  } finally {
+    if (playHook) lab.hooks.set(seqPlay, playHook);
+    else lab.hooks.delete(seqPlay);
+  }
+  assert.equal(rejected, 1);
+  for (let index = 0; index < 12; index++)
+    captureSite(build.capture_sites[0], `Repeated 5D ${index + 1}`, build.presets['5D']);
+  checks.push({label:'Audio start rejection', rejected, subsequent_playback:true});
   key('menu');
   choose(2);
   key('s1');
@@ -189,7 +224,7 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
         assert.deepEqual(pcm.subarray(onsets[i], onsets[i + 1]), sound.subarray(0, bytes));
       }
       assert.deepEqual(pcm.subarray(onsets.at(-1), onsets.at(-1) + sound.length), sound);
-      assert.equal(byte(0xa32da3a8), 0);
+      checkIdle();
       checks.push({label:'Sequential long-clip restart', attacks:onsets.length, frames:onsets.map(n => n / 4)});
       captureSite(build.capture_sites[1], 'Sequential Ciallo after burst', sdPreset(label));
       // Restore Silent Single for the remaining individual presets.
@@ -207,5 +242,6 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   choose(0);
   key('s1');
   captureSite(build.capture_sites[0], 'Silent Single with Silent selected', null);
+  checks.push({label:'Audio resource release', ...resources});
   return checks;
 }

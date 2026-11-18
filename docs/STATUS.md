@@ -2,7 +2,7 @@
 
 ## Current Games and ES sound trial
 
-**OM-3 1.1, E147.** Current trial main `39c9f50f7c3a5a3f195d7b8f83f5372513a7eb7919efd67c133318ab24854738`.
+**OM-3 1.1, E147.** Current trial main `ef4b4885dad7c229bc19ca0d1119334600d77a2eaee1f7738eace6456e7c8508`.
 Games return to the COLOR 1–4 Picture Mode launcher
 with the r5 game and touch code. While the launcher or a game owns the
 screen, the through-image display path skips new preview submissions. It
@@ -14,7 +14,9 @@ Select Silent, 5D, D850, Ciallo, Man or Custom. Capture notifications from the
 E147 buffer manager trigger playback in Silent Single and Silent Sequential.
 While custom audio is active, UI_OUT checks native transmitter ownership on
 shot events and a 32 ms timed wait. Once the transmitter releases its object,
-the worker closes the owned player through the native audio teardown. A new
+the worker closes the owned player through the native audio teardown. If
+the audio driver rejects registration, the worker closes the open handle
+directly. Periodic waits stop after 48 polls without another capture. A new
 shot can rewind the PCM cursor. Supported bursts can coalesce sound requests.
 The game section loads 232 KiB. The sound section adds 216 KiB for embedded
 clips, code and one SD WAV buffer.
@@ -24,7 +26,9 @@ OM-Emu fixtures exercise both native capture call sites. Three consecutive
 Silent Sequential replay restarted Ciallo twice and played the last clip to
 completion. Custom played 48,000 frames. Mechanical Single and the Silent
 choice emitted zero added audio. The new replay also drops the first clip's
-TX-done notification and checks that subsequent shots remain audible.
+TX-done notification and rejects one audio registration. It checks subsequent
+playback and records balanced opens and closes, idle native copy and TX state,
+and released WAV buffer leases across repeated shots.
 
 On the preceding `23a591b4d8d3` image, the owner heard ES sound on the first
 shot or burst after boot, followed by standard silent playback. The menu
