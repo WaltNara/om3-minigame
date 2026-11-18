@@ -1,9 +1,8 @@
 # Electronic shutter sound after the OM-3 menu migration
 
-The current Silent Single build loads Ciallo, Man and Custom from SD.
-See the [install guide](../shutter_sound/TRIAL_SD.md) and
-[file requirements](../shutter_sound/SOUND_FILES.md). This document records
-the design work and remaining camera and burst validation.
+This records the research leading to the earlier full-menu sound trials.
+See the current [install guide](../shutter_sound/TRIAL_NATIVE.md) and
+[file requirements](../shutter_sound/SOUND_FILES.md) for the capture-driven build.
 
 Use the E147 firmware 1.1 **Extras camera trial** as the integration baseline.
 The first audible milestone is one accepted electronic single shot playing one short

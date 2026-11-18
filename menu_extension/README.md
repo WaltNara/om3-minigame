@@ -1,5 +1,8 @@
 # OM-3 full-menu Extras
 
+This directory records the earlier full-menu game host. The current release uses
+the [Picture Mode launcher and native ES sound row](../shutter_sound/TRIAL_NATIVE.md).
+
 Started 2026-11-18 after pausing shutter playback work. Target the OM-3's normal
 MENU interface, with an opaque menu/game background, independent of Picture Mode
 and the creative dial. The separate E147 candidate now runs the five r5 game

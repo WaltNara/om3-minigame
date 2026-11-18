@@ -23,6 +23,9 @@ try {
             @('card/DCOLYMP/E1479999.BIN', 'card/OM3MOD/GUIDES.BIN',
               'card/OM3MOD/LABELS.BIN', 'card/OM3MOD/TONES.BIN')
         } else { @('restore/DCOLYMP/E1479999.BIN') }
+        if ($Mode -eq 'Install') {
+            $copies += @($checks.Keys | Where-Object { $_ -match '^card/OM3MOD/(CIALLO|MAN|CUSTOM)\.WAV$' })
+        }
         foreach ($source in $copies) {
             if (-not $checks.ContainsKey($source)) { throw "Missing checksum: $source" }
             $target = Join-Path $cardPath ($source -replace '^[^/]+/', '')

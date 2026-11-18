@@ -1,19 +1,29 @@
 # OM-3 shutter sound development
 
-This directory owns the experimental audio feature. Generated sound banks,
-mapping reports and probe results go in `work/shutter-sound/`. The full-menu
-Extras trial supplies the integration baseline and session-only sound chooser.
-Integration and the remaining camera checks are in the
-[implementation plan](../docs/SHUTTER_SOUND_PLAN.md).
+Generated sound banks, mapping reports and probe results go in
+`work/shutter-sound/`. The current build uses the r5 games image and a native
+Setup row, **ES sound**. The selection lasts for the powered session.
 
 ## Current results
 
-- The [current SD trial](TRIAL_SD.md) loads **Ciallo**, **Man** and **Custom**
-  from `OM3MOD` and plays them in Silent Single. It reads one owned buffer on
-  selection. Missing and malformed files stay unselected. The format
-  supports up to 48,000 PCM frames, or 1 second. The chooser and the native
-  SD read, preview and exposure paths passed OM-Emu replay.
+- The [current trial](TRIAL_NATIVE.md) uses the native menu font and loads
+  **Ciallo**, **Man** and **Custom** from `OM3MOD`. Missing and malformed
+  files stay unselected. The format supports 48,000 PCM frames, or one
+  second. `build_native.py` assembles the row, SD loader and CapBuf hooks.
+  `build/extras.py all` builds, tests and packages the combined image.
+- Playback uses the native copy path. A capture requests the sound on UI_OUT
+  in Silent Single or Silent Sequential. A new capture rewinds the copy
+  cursor before the next refill. The transport drains audio already queued
+  for hardware and closes on TX done. The tests cover repeated starts,
+  byte-matched PCM and a burst with three attacks and a complete final tail.
   [Sound file guide](SOUND_FILES.md)
+
+## Earlier trials and research
+
+- The [full-menu SD trial](TRIAL_SD.md) opened the games in Setup, with a
+  physical refresh problem. Its selection preview played once on an OM-3.
+  The simulated `START_EXPOSE` results from that build bypass the real
+  capture call sites. [Earlier research](../docs/SHUTTER_SOUND_PLAN.md)
 - The [earlier built-in trial](TRIAL.md) plays the selected **5D** or **D850**
   clip on exposure start. OK also previews the choice while live view is
   stopped. OM-Emu drove the stock SCP, selected Silent Single and emitted

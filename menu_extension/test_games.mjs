@@ -22,10 +22,11 @@ const {CA_TASK_ENTRIES} = await imp('src/lab/camapp.mjs');
 const M = await imp('src/lab/menudata.mjs');
 const out = path.resolve(root, process.env.OM3_MENU_BUILD ?? 'work/menu-extension/games');
 const manifest = JSON.parse(fs.readFileSync(path.join(out, 'build.json')));
+const pictureMode = manifest.host === 'picture-mode';
 const sy = manifest.symbols, raw = fs.readFileSync(path.join(out, 'row-main.bin'));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 assert.equal(sha(raw), manifest.candidate_sha256);
-const base=fs.readFileSync(path.join(root,'work/native-build/base-main.bin'));
+const base=fs.readFileSync(path.join(root,pictureMode?'work/current-games/row-main.bin':'work/native-build/base-main.bin'));
 assert.equal(sha(base),manifest.base_sha256);
 const tables=new M.Image(base), candidate=new M.Image(raw), mode=manifest.mode;
 assert.deepEqual(M.tabs(candidate),M.tabs(tables));
@@ -38,7 +39,7 @@ for (const [id,page] of M.groups(tables)) {
     assert.deepEqual(next.labels.slice(0,-1),page.labels);
     assert.deepEqual(next.helps.slice(0,-1),page.helps);
     assert.deepEqual(next.values,page.values);
-    assert.deepEqual(next.labels.at(-1),{key:mode,type:5,id:0,literal:'Extras'});
+    assert.deepEqual(next.labels.at(-1),{key:mode,type:5,id:0,literal:pictureMode?'ES sound':'Extras'});
   }
 }
 assert.ok(!M.custom_value_handlers(tables).has(mode) && !M.mode_alias(tables).has(mode));
@@ -46,8 +47,7 @@ for(const [kind,sub] of M.row_order(tables)) for(const [k,rows] of sub) {
   assert.ok(!rows.includes(mode));
   assert.deepEqual(M.row_order(candidate).get(kind).get(k),kind===240&&k===0?[...rows,mode]:rows);
 }
-// The complete Picture Mode row count/list, dispatch table and callbacks come
-// from Caduceus, before r5 added its Games entry.
+// Picture Mode layout and callbacks match the image this build starts from.
 for(const [addr,len] of [[0x60f49a63,17+52],[0x60f49e08,25*40],
     [0x611d040f,24],[0x611d0848,20],[0x611d04ec,6],[0x6125becc,6]])
   assert.ok(raw.subarray(addr-0x60021020,addr-0x60021020+len).equals(base.subarray(addr-0x60021020,addr-0x60021020+len)));
@@ -78,7 +78,7 @@ try {
   });
   const touch = report.touch;
   let touchFrame=null;
-  observe(sy.menu_touch-0x10021020,r=>{
+  observe((sy.menu_touch ?? sy.flappy_touch_repaired)-0x10021020,r=>{
     assert.equal(touchFrame,null);
     const record=sim.u32(r.a3+12);
     touchFrame={regs:Object.fromEntries(['d0','d1','d3','a0','a1','a2','a3','sp'].map(k=>[k,r[k]])),
@@ -126,11 +126,42 @@ try {
     }
     return sha(rgb);
   };
+  const checkPreview = (stage, expected) => {
+    const site = manifest.game_preview_gate;
+    if (!site) return;
+    const permit = 0xa32da638, previous = sim.u32(permit);
+    const resume = site + 5 - 0x10021020;
+    lab.hook(resume, (h, r) => h.return_here(r, [0,4]), 'through preview gate fixture');
+    try {
+      sim.word(permit, previous | 3);
+      for (const mask of [1, 2]) {
+        const answer = lab.call(site - 0x10021020, {d0:mask}, null, [0,4], 20000).d0;
+        assert.equal(answer, expected, `${stage}: display permit ${mask}`);
+      }
+      assert.equal(sim.u32(permit), previous | 3);
+      (report.previewGate ??= []).push({stage, permit:expected});
+    } finally {
+      lab.hooks.delete(runtime(resume));
+      sim.word(permit, previous);
+    }
+  };
   // Reuse the paired-card readiness of the accepted r5 camera replay.
   idle(1500);
   sim.write(0xa32de590, Uint8Array.of(255,3,0,0));
   sim.write(0x60369308, Uint8Array.of(0,240,0,0));
-  key('s1'); key('menu','setup'); assert.equal(panel(),329);
+  const openPictureGames = () => {
+    key('ok'); key('ok');
+    for(let i=0;i<13;i++) key('down');
+    assert.equal(byte(sy.games_row_selected),1);
+    key('ok','launcher'); assert.equal(state(),1); picture('launcher');
+  };
+  key('s1');
+  if (pictureMode) {
+    checkPreview('shooting', 1);
+    openPictureGames();
+    checkPreview('launcher', 0);
+  } else {
+  key('menu','setup'); assert.equal(panel(),329);
   assert.equal(s.through_off,true);
   for(let i=0;i<3;i++) key('down');
   picture('setup');
@@ -151,6 +182,7 @@ try {
   key('ok','launcher'); assert.equal(state(),1); picture('launcher');
   key('menu','back-to-extras'); assert.equal(state(),7);
   key('ok','reopen-launcher'); assert.equal(state(),1);
+  }
   key('ok','2048'); assert.equal(state(),2); const before=Buffer.from(sim.read(sy.board,16));
   for(const k of ['left','down','right']) key(k);
   assert.notDeepEqual(Buffer.from(sim.read(sy.board,16)),before); picture('2048');
@@ -163,13 +195,14 @@ try {
       if(name==='breakout') {key('ok','serve'); assert.equal(sim.u32(sy.breakout_state+20),1);}
       const ballY=sim.u32(sy.breakout_state+8);
       assert.notEqual(timer(),0); const start=ticks(); idle(1500); snap(name+'-idle');
-      assert.ok(ticks()>start); assert.equal(s.through_off,true);
+      assert.ok(ticks()>start); assert.equal(s.through_off,!pictureMode);
       if(name==='breakout') assert.notEqual(sim.u32(sy.breakout_state+8),ballY);
     }
     if(selection===4) break;
     key('menu'); assert.equal(state(),1); assert.equal(timer(),0);
   }
   picture('flappy');
+  checkPreview('playing', 0);
   stage='touch';
   const sample=(act,x=450,y=300)=>{
     s.touch(act,x,y); s.camapp.pump(); idle(65);
@@ -203,10 +236,15 @@ try {
   }
   key('s1','shutter-exit'); assert.equal(lab.state(),0x0108);
   assert.equal(state(),0); assert.equal(timer(),0); assert.equal(s.through_off,false);
+  checkPreview('after shutter exit', 1);
   const stopped=ticks(); idle(1500); assert.equal(ticks(),stopped);
-  assert.deepEqual(report.through.filter(e=>e.stage!=='startup' && e.stage!=='s1'),
+  assert.deepEqual(report.through.filter(e=>e.stage!=='startup' && e.stage!=='s1'), pictureMode ? [] :
     [{stage:'setup',ctrl:0},{stage:'shutter-exit',ctrl:1}]);
   assert.ok(report.snapshots.every(r=>r.images===0 && r.recording===null));
+  if (pictureMode) {
+    openPictureGames();
+    for(let i=0;byte(sy.games_selection)!==4 && i<6;i++) key('down');
+  } else {
   key('menu','reopen-setup'); assert.equal(panel(),329); assert.equal(s.through_off,true);
   key('ok','reopen-extras'); assert.equal(state(),7);
   // A touch on the opaque hub cannot hit one of the Setup widgets underneath.
@@ -215,11 +253,13 @@ try {
   key('up'); assert.equal(byte(sy.games_selection),5);
   key('ok','launcher-back-item'); assert.equal(state(),7);
   key('ok'); key('up'); key('up'); assert.equal(byte(sy.games_selection),4);
+  }
   key('ok'); assert.equal(state(),6); assert.notEqual(timer(),0);
   gesture(1); assert.equal(byte(sy.flappy_contact),1);
   stage='display-change'; s.display_input('eye',1); idle(300); snap(stage);
   assert.equal(state(),0); assert.equal(timer(),0); assert.equal(byte(sy.games_paint_valid),0);
   assert.equal(sim.u32(sy.games_screen),0); assert.equal(byte(sy.flappy_contact),0);
+  checkPreview('after display change', 1);
   const afterSwitch=ticks(); idle(1000); assert.equal(ticks(),afterSwitch);
   report.status='pass';
 } catch(e) {

@@ -2,8 +2,16 @@
  * UI_OUT owns the player and runs native completion on its own task. */
 .am33_2
 .text
-.global es_save_choice, es_dispatch, es_wave
+.global es_dispatch, es_wave
+.ifndef NATIVE_MENU
+.global es_save_choice
 .extern sound_cursor, sound_choice, show_extras, extra_consumed
+.else
+.extern sound_choice
+.global es_copy_done, es_prepare_player, es_rewind_copy
+.extern audio_set_irq, set_flag_irq, ui_end, stock_prepare_player, copy_resume
+.set COPY_DONE_FLAG, 8
+.endif
 .extern ui_flag, set_flag, ui_wait, ui_stock_exec, ui_request
 .extern ui_resource_size, ui_size_resume, ui_wave_resume
 .extern wave_5d, wave_5d_bytes, wave_d850, wave_d850_bytes
@@ -17,14 +25,18 @@
 .set EXPOSURE_FLAG, 16
 
 .ifdef SINGLE_SHOT
+.ifndef NATIVE_MENU
 .global es_exposure
-.extern shoot_post_resume, get_drive
+.extern shoot_post_resume
+.endif
+.extern get_drive
 .endif
 
 .ifdef SD_CUSTOM
 .extern es_load_sd, sd_buffer, sd_length, sd_loading, sd_lease, es_select_error
 .endif
 
+.ifndef NATIVE_MENU
 es_save_choice:
  movbu (sound_cursor),d2
 .ifndef SD_CUSTOM
@@ -71,18 +83,68 @@ refused:
 unavailable:
  jmp extra_consumed
 .endif
+.endif
 
 /* Stock natural completion and lamp requests run before this dispatch.
  * Give the native synchronous queue priority and drop a busy preview. */
 es_dispatch:
+.ifdef NATIVE_MENU
+ /* The copy path signals TX done even if it skips the WAV end callback.
+  * Close our player on UI_OUT after the native TX-done flag is set. */
+ btst COPY_DONE_FLAG,d2
+ beq check_native_queue
+ movbu (copy_active),d0
+ cmp 0,d0
+ beq check_native_queue
+ clr d0
+ movbu d0,(copy_active)
+ movbu (UI_BUSY),d0
+ cmp 1,d0
+ bne check_native_queue
+ mov 2,d0
+ movbu d0,(UI_BUSY)
+ call ui_end,[],72
+ /* If the final period was already queued, replay the newest request now. */
+ mov (copy_generation),d0
+ mov (copy_consumed),d1
+ cmp d1,d0
+ beq check_native_queue
+ or EXPOSURE_FLAG,d2
+check_native_queue:
+.endif
  btst 4,d2
  bne stock_exec
 .ifdef SINGLE_SHOT
+.ifdef NATIVE_MENU
+ btst EXPOSURE_FLAG,d2
+.else
  btst SHUTTER_FLAG|EXPOSURE_FLAG,d2
+.endif
 .else
  btst SHUTTER_FLAG,d2
 .endif
  beq wait_more
+.ifdef NATIVE_MENU
+ mov 3265,d0
+ call get_drive,[],4
+ cmp 30,d0
+ beq check_player
+ cmp 32,d0
+ bne wait_more
+check_player:
+ movbu (copy_active),d0
+ cmp 0,d0
+ beq check_busy
+ movbu (sound_choice),d0
+ movbu (playing_choice),d1
+ cmp d1,d0
+ bne wait_more
+ mov (copy_generation),d0
+ inc d0
+ mov d0,(copy_generation)
+ bra wait_more
+check_busy:
+.endif
  movbu (UI_BUSY),d0
  cmp 0,d0
  bne wait_more
@@ -93,6 +155,7 @@ es_dispatch:
  cmp 0,d0
  bne wait_more
 .ifdef SINGLE_SHOT
+.ifndef NATIVE_MENU
  btst SHUTTER_FLAG,d2
  bne selected
  mov 3265,d0
@@ -104,6 +167,7 @@ es_dispatch:
 .endif
  bne wait_more
 selected:
+.endif
 .endif
  movbu (sound_choice),d0
  cmp 1,d0
@@ -140,6 +204,13 @@ preview_sd:
 set_preview:
  mov a0,(preview_pointer)
  mov d1,(preview_bytes)
+.ifdef NATIVE_MENU
+ movbu (sound_choice),d0
+ movbu d0,(playing_choice)
+ clr d0
+ mov d0,(copy_generation)
+ mov d0,(copy_consumed)
+.endif
  mov preview_request,a0
  call ui_request,[d2,d3,a2,a3],16
 .ifdef SD_CUSTOM
@@ -164,6 +235,10 @@ es_wave:
  mov d0,(WAV_POINTER)
  mov (preview_bytes),d0
  mov d0,(WAV_BYTES)
+.ifdef NATIVE_MENU
+ mov 1,d0
+ movbu d0,(copy_active)
+.endif
  mov a2,a0
  mov 1,d1
  jmp ui_wave_resume
@@ -173,7 +248,76 @@ stock_wave:
  call ui_resource_size,[d2,d3,a2],16
  jmp ui_size_resume
 
+.ifdef NATIVE_MENU
+/* The UI sound path prepares a short clip. The native copy player already
+ * has its format and volume from the ordinary open/volume commands. */
+es_prepare_player:
+ mov preview_request+4,a0
+ cmp a3,a0
+ beq skip_short_setup
+ jmp stock_prepare_player
+skip_short_setup:
+ ret [d2,d3,a2],60
+
+/* AUD_COPY_DATA owns the native PCM cursor and remaining byte count. Rewind
+ * only the validated range of our active clip before filling its next period. */
+es_rewind_copy:
+ movbu (copy_active),d2
+ cmp 0,d2
+ beq native_copy
+ mov (copy_generation),d2
+ mov (copy_consumed),d3
+ cmp d2,d3
+ beq native_copy
+ mov (a0),a2
+ mov (4,a2),a2
+ mov (48,a2),a3
+ mov (preview_pointer),d3
+ add 112,d3
+ mov a3,d1
+ cmp d3,d1
+ bcs native_copy
+ mov (52,a2),d1
+ cmp 0,d1
+ beq native_copy
+ mov (preview_bytes),d1
+ add -112,d1
+ add d3,d1
+ mov a3,a1
+ mov d1,a3
+ cmp a3,a1
+ bcc native_copy
+ mov d3,(48,a2)
+ sub d3,d1
+ mov d1,(52,a2)
+ mov d2,(copy_consumed)
+native_copy:
+ mov a0,(12,sp)
+ mov d0,(28,sp)
+ clr d3
+ jmp copy_resume
+
+/* Last call in the TX done interrupt callback. Preserve its native signal. */
+es_copy_done:
+ call audio_set_irq,[d2,d3,a2],32
+ movbu (copy_active),d0
+ cmp 0,d0
+ beq done_irq
+ movhu (ui_flag),d0
+ exth d0
+ mov COPY_DONE_FLAG,d1
+ call set_flag_irq,[d2,d3,a2],28
+done_irq:
+ ret [],4
+copy_active: .byte 0
+playing_choice: .byte 0
+.balign 4
+copy_generation: .long 0
+copy_consumed: .long 0
+.endif
+
 .ifdef SINGLE_SHOT
+.ifndef NATIVE_MENU
 /* CBC_SHOOTING_COMMON posts START_EXPOSE (0x88). Keep the stock
  * publication and do the drive gate and sound work on UI_OUT. */
 es_exposure:
@@ -199,6 +343,7 @@ es_exposure:
 expose_resume:
  mov 188,d2
  jmp shoot_post_resume
+.endif
 .endif
 
 .balign 4

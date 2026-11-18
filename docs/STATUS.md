@@ -1,25 +1,35 @@
 # Firmware status
 
-## Current Extras and SD sound trial
+## Current Games and ES sound trial
 
-**OM-3 1.1, E147.** The current image is
-`8db210d58a601d6546a26d635587ef2d288069f0e13af1d755ca16b47f50af72`.
-Games and Shutter sound open from **MENU → Setup → Information Record →
-Extras**. In OM-Emu, entry requested stock live-view stop. All five games,
-181 touch replies and returned waits, and outside-game parity passed.
+**OM-3 1.1, E147.** Trial main `23a591b4d8d382027e1db5f7a45f50035a771a0ce3aa8b75c58062843824fc15`.
+Games return to the COLOR 1–4 Picture Mode launcher
+with the r5 game and touch code. While the launcher or a game owns the
+screen, the through-image display path skips new preview submissions. It
+resumes on exit. Sensor and ISP activity and power savings remain unmeasured.
 
-The SD replay played the complete Ciallo and Man samples, rejected missing,
-truncated and oversized WAVs, and played a 48,000-frame Custom clip on a
-Silent Single exposure. Half-press, ordinary Single, and the Silent
-selection produced zero added PCM. The linked game section still loads
-240 KiB. The SD-sound build adds 216 KiB to section 1 for WAVs, code, and
-one selected clip buffer. The native loader test supplied NAND reads
-through OM-Emu. Physical boot, touch and speaker playback on this image
-still require testing. Burst playback remains outside this trial.
+**ES sound** is a native text row under **MENU → Setup → Information Record**.
+Select Silent, 5D, D850, Ciallo, Man or Custom. Capture notifications from the
+E147 buffer manager trigger playback in Silent Single and Silent Sequential.
+The native copy player closes on its TX-done interrupt and rewinds the
+PCM cursor for a new shot. Supported bursts can coalesce sound requests.
+The game section loads 232 KiB. The sound section adds 216 KiB for embedded
+clips, code and one SD WAV buffer.
 
-[Install and use Extras](../shutter_sound/TRIAL_SD.md) ·
+OM-Emu fixtures exercise both native capture call sites. Three consecutive
+5D singles played the complete clip and released the player. A three-shot
+Silent Sequential replay restarted Ciallo twice and played the last clip to
+completion. Custom played 48,000 frames. Mechanical Single and the Silent
+choice emitted zero added audio. Hardware acceptance is pending on the OM-3.
+
+[Install and use Games and ES sound](../shutter_sound/TRIAL_NATIVE.md) ·
 [Sound file requirements](../shutter_sound/SOUND_FILES.md) ·
 [Build and test](DEVELOPMENT.md)
+
+The previous full-menu trial (`8db210d58a60`) opened Games on the camera with
+unacceptable refresh. Its selection preview played once on the speaker, and
+capture playback failed. The current build uses the original Picture Mode
+launcher and a capture-driven player.
 
 ## Camera-tested Picture Mode baseline
 

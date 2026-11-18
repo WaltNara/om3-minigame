@@ -43,13 +43,14 @@ py -3 shutter_sound/prepare_presets.py --fetch --public-only
 py -3 build/extras.py all
 ```
 
-`build/extras.py` also accepts `build`, `test`, or `package`. It obtains the
-linked r5 game payload in `work/current-games`, adds the full Setup menu host,
-then builds `work/shutter-sound/sd/row-main.bin`. The test step checks the six
-chooser entries, native audio, SD file rejection, all five games and the
-Flappy touch and outside-game regressions. Packaging checks all reports against
-the exact candidate hash. It writes `artifacts/om3-es-sd-trial-<hash>.zip` with
-the firmware image, matching card files, a stock restore, and the install guide.
+`build/extras.py` also accepts `build`, `test` or `package`. It starts from
+the exact r5 game image in `work/current-games` and adds **ES sound** using
+the native Setup viewer. It builds `work/shutter-sound/native/row-main.bin`.
+The test step covers sound selection, SD validation, PCM at the capture
+hooks, game entry and the Flappy touch and outside-game regressions.
+Packaging verifies the candidate hash against the reports. The resulting
+`artifacts/om3-es-native-trial-<hash>.zip` includes the firmware, matching
+card files, stock restore and the install guide.
 
 To include the supplied personal sounds in a local install package, put
 `Ciallo.m4a` and `man.MP3` in `shutter_sound/`, then use:
@@ -59,7 +60,7 @@ py -3 shutter_sound/prepare_presets.py --fetch
 py -3 build/extras.py all --include-local-sounds
 ```
 
-The [current install guide](../shutter_sound/TRIAL_SD.md) covers the SD
+The [current install guide](../shutter_sound/TRIAL_NATIVE.md) covers the SD
 layout and stock restore. Keep trial ZIPs, firmware and personal audio
 local. Use [the r5 workflow](architecture/BUNDLE_ARCHITECTURE.md) and
 `build/build.py` for the earlier Picture Mode build.

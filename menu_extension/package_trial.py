@@ -19,7 +19,9 @@ def package_trial(out=OUT, instructions=None, audio_evidence=None, extra_files=N
     digest = hashlib.sha256(main).hexdigest()
     report = json.loads((out / "replay.json").read_text())
     if (report.get("status"), report.get("sha256"), meta["candidate_sha256"]) != ("pass", digest, digest):
-        raise ValueError("The full-menu replay must pass for this candidate")
+        raise ValueError("The game and menu replay must pass for this candidate")
+    if meta.get("game_preview_gate") and [row.get("permit") for row in report.get("previewGate", [])] != [1, 0, 0, 1, 1]:
+        raise ValueError("The game preview gate must pass entry and exit checks")
     regressions = {}
     for folder in ("touch-reply", "outside", "validation"):
         relative = folder + "/validation.json"
@@ -47,7 +49,10 @@ def package_trial(out=OUT, instructions=None, audio_evidence=None, extra_files=N
         if hashlib.sha256(blob).hexdigest() != card[name]:
             raise ValueError(f"Unexpected card asset {name}")
         files["card/OM3MOD/" + name] = blob
-    for name in ("setup", "extras", "sound", "launcher", "2048", "flappy"):
+    pictures = ("setup", "sound", "launcher", "2048", "flappy")
+    if meta.get("host") == "list-menu":
+        pictures += ("extras",)
+    for name in pictures:
         files["evidence/" + name + ".png"] = (out / (name + ".png")).read_bytes()
     if audio_evidence is not None:
         proof, credits = audio_evidence
@@ -62,7 +67,8 @@ def package_trial(out=OUT, instructions=None, audio_evidence=None, extra_files=N
         files.update(extra_files)
     files["SHA256SUMS"] = "".join(f"{hashlib.sha256(blob).hexdigest()}  {name}\n"
                                   for name, blob in sorted(files.items())).encode("ascii")
-    prefix = ("om3-es-sd-trial" if meta.get("sd_custom") else
+    prefix = ("om3-es-native-trial" if meta.get("sound_menu") == "inline" else
+              "om3-es-sd-trial" if meta.get("sd_custom") else
               "om3-es-single-trial" if audio_evidence else "om3-extras-trial")
     dest = ROOT / "artifacts" / f"{prefix}-{digest[:12]}.zip"
     dest.parent.mkdir(exist_ok=True)

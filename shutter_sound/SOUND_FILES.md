@@ -1,12 +1,12 @@
 # OM-3 SD shutter sounds
 
 Put the WAV files in **OM3MOD** at the root of the camera's SD card.
-Open **MENU → Setup → Information Record → Extras → Shutter sound**.
-Select a sound and press OK to load and hear it. Use the camera's **Silent
-Single** drive mode to play the selected sound when taking a photo.
-Choose **Silent** in Extras to turn the added sound off.
+Open **MENU → Setup → Information Record → ES sound**. Press OK to edit,
+use the arrows to choose a sound, and press OK to load it. Use **Silent
+Single** or **Silent Sequential** to hear it during capture. Choose **Silent**
+to turn the added sound off.
 
-| Extras choice | SD file | Included duration |
+| ES sound choice | SD file | Included duration |
 | --- | --- | --- |
 | Ciallo | `OM3MOD/CIALLO.WAV` | 908 ms, supplied in the local trial |
 | Man | `OM3MOD/MAN.WAV` | 547 ms, supplied in the local trial |
@@ -16,12 +16,12 @@ Choose **Silent** in Extras to turn the added sound off.
 you press OK and keeps the successful selection in memory until power-off.
 After replacing a file, select its menu entry again to load the new sound.
 
-- **NO WAV** means the camera could not open the file at the listed path.
+- **No WAV on card** means the camera could not open the file at the listed path.
   Check the card and filename. The requested sound stays unselected.
-- **BAD WAV** means the file failed the format or size check. Convert it
+- **Invalid WAV** means the file failed the format or size check. Convert it
   with the included tool. If this read replaced an active SD clip, the
   camera goes back to Silent.
-- **TRY AGAIN** means an audio player still owns the buffer. Let playback
+- **Player busy** means an audio player still owns the buffer. Let playback
   finish, then press OK again.
 
 ## Preparing CUSTOM.WAV
@@ -50,6 +50,5 @@ exceeds the limit.
 | Maximum WAV file size | 192,112 bytes, including the 112-byte header |
 | Internal layout | Exact header from `convert.py --sd`, including the camera's short-sound key and a 16-byte-aligned PCM start |
 
-The trial uses Silent Single. Use the included Ciallo and Man WAVs as supplied.
-Short clips work better for closely spaced shots because the player can
-finish the current clip before the next request.
+Use Ciallo and Man as supplied. The short 5D and D850 clips suit
+closely spaced shots. Continuous shooting may skip sound requests.
