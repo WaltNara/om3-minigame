@@ -5,31 +5,41 @@
 Native builds currently use Python 3, Node.js and MN10300 binutils on Windows.
 Source-only checks also run on Linux. External inputs are not in Git.
 
-1. Clone Caduceus into `vendor/caduceus-om3`, checking out commit
-   `f4d2569eb46817795ec5ffaf931ba058d2c0d029` (v0.26.2).
-2. Obtain your official OM-3 1.1 firmware. `py -3 native/fetch_inputs.py stock`
-   downloads/verifies the upstream-pinned file into `work/`.
-3. Fetch sources with `py -3 native/fetch_inputs.py binutils`. In an MSYS/MinGW
-   shell, run `bash native/build_toolchain.sh`. Supply GCC/make on PATH or set
-   `OM3_MAKE`; output is `work/toolchain/`.
-4. Obtain OM-Emu under `work/om-emu/emu` using Caduceus's emulator instructions.
-   `native/windows_emu.py` provides Windows adaptation. Source-only CI does not
-   download the emulator or manufacturer firmware.
-5. Run `py -3 native/build.py`, `py -3 native/prepare_emulator.py`, then
-   `py -3 tests/test_emulator.py seed` and `py -3 tests/test_emulator.py validate` to prepare the baseline and paired card.
-   This setup builder includes the old guessing game as a harness seed;
-   it is not the combined release to install.
+From the repository root, check out the pinned dependencies and prepare the
+official firmware and assembler inputs.
 
-Before seeding, create the blank card with the generated blank helper:
+```powershell
+git clone https://github.com/androidfanman/caduceus-om3.git vendor/caduceus-om3
+git -C vendor/caduceus-om3 checkout f4d2569eb46817795ec5ffaf931ba058d2c0d029
+git clone https://github.com/flatpanda/om-emu.git work/om-emu
+git -C work/om-emu checkout 88b753ddb9c0fac35366802133e849600aa519d5
+py -3 native/fetch_inputs.py stock
+py -3 native/fetch_inputs.py binutils
+```
+
+In an MSYS/MinGW shell, run `bash native/build_toolchain.sh` from the
+repository root. Supply GCC and make on PATH or set `OM3_MAKE`.
+The output is `work/toolchain/`. The combined firmware and emulator use E147.
+The test runner also uses E143 to regenerate the audio address map on a
+fresh checkout. [Pinned OM-Emu setup reference](https://github.com/flatpanda/om-emu/blob/88b753ddb9c0fac35366802133e849600aa519d5/emu/README.md)
+
+Return to PowerShell to prepare the harness and paired card.
 
 ```powershell
 $env:OM_EMU_MODEL='E147'
 py -3 native/windows_emu.py
-node work/native-build/blank.mjs file:///D:/path/to/project/work/om-emu/emu work/native-build/main.bin blank work/native-build/blank-check.json work/native-build/blank.omsd
+node work/om-emu/emu/bin/fetch-fw.mjs --model E147 --bin work/OLY_E_147_1100_0000_0000.BIN
+node work/om-emu/emu/bin/fetch-fw.mjs --model E143
+py -3 native/build.py
+py -3 native/prepare_emulator.py
+$emu = ([Uri](Resolve-Path work/om-emu/emu).Path).AbsoluteUri
+node work/native-build/blank.mjs $emu work/native-build/main.bin blank work/native-build/blank-check.json work/native-build/blank.omsd
+py -3 tests/test_emulator.py seed
+py -3 tests/test_emulator.py validate
 ```
 
-Replace the file URL with your checkout location. Run this after generating the
-helpers, before `test_emulator.py seed` and `validate`.
+`native/build.py` creates the harness baseline. The installable combined
+image comes from `build/extras.py`. The local replay used Node.js 24.18.0.
 
 ## Current workflow
 
@@ -44,15 +54,15 @@ py -3 build/extras.py all
 ```
 
 `build/extras.py` also accepts `build`, `test` or `package`. It starts from
-the exact r5 game image in `work/current-games` and adds **ES sound** using
-the native Setup viewer. It builds `work/shutter-sound/native/row-main.bin`.
-The test step covers sound selection, SD validation, PCM at the capture
-hooks, game entry and the Flappy touch and outside-game regressions.
-Packaging verifies the candidate hash against the reports. The resulting
-`artifacts/om3-es-native-trial-<hash>.zip` includes the firmware, matching
-card files, stock restore and the install guide.
+the exact r5 game image in `work/current-games`, adds the display pause and
+native **ES sound** setting, and writes `work/shutter-sound/native/row-main.bin`.
+The tests cover repeated volume requests, single and burst playback, resource
+release, SD sound validation, the live-view pause, and touch and outside-game
+regressions. Packaging verifies the image hash against those reports. The
+resulting `artifacts/om3-extras-<hash>.zip` includes the updater, matching card
+files, the stock updater and the install guide.
 
-To include the supplied personal sounds in a local install package, put
+To include the supplied personal sounds in a `-local.zip` package, put
 `Ciallo.m4a` and `man.MP3` in `shutter_sound/`, then use:
 
 ```powershell
@@ -60,10 +70,11 @@ py -3 shutter_sound/prepare_presets.py --fetch
 py -3 build/extras.py all --include-local-sounds
 ```
 
-The [current install guide](../shutter_sound/TRIAL_NATIVE.md) covers the SD
-layout and stock restore. Keep trial ZIPs, firmware and personal audio
-local. Use [the r5 workflow](architecture/BUNDLE_ARCHITECTURE.md) and
-`build/build.py` for the earlier Picture Mode build.
+Keep firmware ZIPs and personal audio local. The optional `--diagnostics`
+flag builds a separate ES sound readout. Use `build/build.py` for the earlier
+games-only r5 workflow. [Install guide](../shutter_sound/INSTALL.md) ·
+[ES sound diagnostics](../shutter_sound/ES_STATUS.md) ·
+[Games-only workflow](architecture/BUNDLE_ARCHITECTURE.md)
 
 ## Adding/changing a game
 

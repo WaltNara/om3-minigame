@@ -1,49 +1,42 @@
 # Firmware status
 
-## Current Games and ES sound trial
+## Current Games and ES sound build
 
-**OM-3 1.1, E147.** Current trial main `8bf67c77473aafecd0f6f7ef07d4e31e8aaa8a737f26ec1f87a79a6936533afa`.
-Games return to the COLOR 1–4 Picture Mode launcher
-with the r5 game and touch code. While the launcher or a game owns the
-screen, the through-image display path skips new preview submissions. It
-resumes on exit. The owner confirmed good game play and live-view pause on
-image `23a591b4d8d3`. Sensor and ISP activity and power savings remain unmeasured.
+**OM-3 1.1, E147 build 1100.** The camera owner confirmed testing the latest
+combined image on a real OM-3. Raw SHA-256
+`8bf67c77473aafecd0f6f7ef07d4e31e8aaa8a737f26ec1f87a79a6936533afa`.
+The owner did not report a test duration or per-mode results for this build.
 
-**ES sound** is a native text row under **MENU → Setup → Information Record**.
-Select Silent, 5D, D850, Ciallo, Man or Custom. Capture notifications from the
-E147 buffer manager trigger playback in Silent Single and Silent Sequential.
-While custom audio is active, UI_OUT checks native transmitter ownership on
-shot events and a 32 ms timed wait. Once the transmitter releases its object,
-the worker closes the owned player through the native audio teardown. If
-the audio driver rejects registration, the worker closes the open handle
-directly. Periodic waits stop after 48 polls without another capture. A new
-shot can rewind the PCM cursor. Supported bursts can coalesce sound requests.
-The game section loads 232 KiB. The sound section adds 216 KiB for embedded
-clips, code and one SD WAV buffer.
+The five games open via **COLOR 1–4 → Picture Mode → Games**. The display
+skips new live-view submissions while the launcher or a game is open and
+resumes on exit. The owner also confirmed the pause and game controls on the
+earlier `23a591b4d8d3` build. Sensor and ISP activity and power savings remain
+unmeasured.
 
-OM-Emu fixtures exercise both native capture call sites. Three consecutive
-5D singles played the complete clip and released the player. A three-shot
-Silent Sequential replay restarted Ciallo twice and played the last clip to
-completion. Custom played 48,000 frames. Mechanical Single and the Silent
-choice emitted zero added audio. The new replay also drops the first clip's
-TX-done notification and rejects one audio registration. It checks subsequent
-playback and records balanced opens and closes, idle native copy and TX state,
-and released WAV buffer leases across repeated shots.
+**ES sound** is under **MENU → Setup → Information Record**. Silent Single and
+Silent Sequential support the built-in 5D and D850 sounds and the Ciallo, Man
+and Custom WAV files. Silent is the startup default. The game section loads
+232 KiB. The sound section adds 216 KiB for code, clips and one SD WAV buffer.
 
-On `23a591b4d8d3`, the owner heard ES sound on the first shot or burst after
-boot, followed by standard silent playback. The menu still showed the selected
-sound. The owner reported the same behavior on `ef4b4885dad7` after the cleanup
-change. On status image `3caaf37a7cd6`, only the first of four spaced 5D
-shots was audible. All four shots reached the player and its close routine.
-The native volume command divides the caller's values in place. The mod
-reused those converted values, reducing its input on each shot from 100
-to 10, then 1, then 0. The new image refreshes the volume values before each
-request. The replay checks the request at the native volume handler because
-the emulator's PCM output does not apply the physical speaker volume.
-Repeated playback on the updated camera still needs confirmation.
-[ES sound status](../shutter_sound/ES_STATUS.md)
+### Emulator results for the exact image
 
-[Install and use Games and ES sound](../shutter_sound/TRIAL_NATIVE.md) ·
+- Both native capture hooks ran. Repeated 5D singles matched the clip and
+  a three-shot Silent Sequential replay restarted Ciallo twice and played
+  the last clip to completion. Custom played 48,000 frames. Mechanical
+  Single and the Silent setting emitted zero added audio.
+- All 23 audio requests supplied fresh volume values, with 23 opens,
+  23 closes and 25 idle-state checks. Playback recovered after an injected
+  lost transmitter notification and a rejected registration.
+- The launcher, live-view pause and resume, Flappy touch replies, and
+  behavior outside the games passed the combined-image replay.
+
+The camera readout for the old first-shot-only failure showed all four shots
+opening and closing their players. The native volume command mutates the
+values in place, so reusing that record reduced 100 to 10, then 1, then 0.
+The combined build refills the record before each new playback.
+[First-shot diagnosis](../shutter_sound/ES_STATUS.md)
+
+[Install and use Games and ES sound](../shutter_sound/INSTALL.md) ·
 [Sound file requirements](../shutter_sound/SOUND_FILES.md) ·
 [Build and test](DEVELOPMENT.md)
 

@@ -17,7 +17,7 @@ import manifest
 from package import firmware_container
 
 
-def package_trial(out, include_local_sounds):
+def package_extras(out, include_local_sounds):
     meta = json.loads((out / "build.json").read_text())
     main = (out / "row-main.bin").read_bytes()
     digest = hashlib.sha256(main).hexdigest()
@@ -41,7 +41,7 @@ def package_trial(out, include_local_sounds):
         "card/DCOLYMP/E1479999.BIN": container,
         "restore/DCOLYMP/E1479999.BIN": (ROOT / "work" / spec["stock_file"]).read_bytes(),
         "Verify-Package.ps1": (ROOT / "build/Verify-Package.ps1").read_bytes(),
-        "README.md": (SOURCE / "TRIAL_NATIVE.md").read_bytes(),
+        "README.md": (SOURCE / "INSTALL.md").read_bytes(),
         "UPSTREAM_INSTALL.md": (ROOT / "vendor/caduceus-om3/docs/INSTALL.md").read_bytes(),
         "LICENSE": (ROOT / "LICENSE").read_bytes(),
         "NOTICE": (ROOT / "NOTICE").read_bytes(),
@@ -104,8 +104,9 @@ def package_trial(out, include_local_sounds):
             files[f"card/OM3MOD/{name.upper()}.WAV"] = preset["wav"]
     files["SHA256SUMS"] = "".join(f"{hashlib.sha256(blob).hexdigest()}  {name}\n"
                                   for name, blob in sorted(files.items())).encode("ascii")
-    kind = "status" if diagnostics else "trial"
-    dest = ROOT / "artifacts" / f"om3-es-native-{kind}-{digest[:12]}.zip"
+    kind = "om3-es-status" if diagnostics else "om3-extras"
+    suffix = "-local" if include_local_sounds else ""
+    dest = ROOT / "artifacts" / f"{kind}-{digest[:12]}{suffix}.zip"
     dest.parent.mkdir(exist_ok=True)
     # Publish only a completely written and verified ZIP. Each main image gets
     # its own filename, including rebuilds of a previously tested candidate.
@@ -127,4 +128,4 @@ if __name__ == "__main__":
     parser.add_argument("--include-local-sounds", action="store_true")
     parser.add_argument("--diagnostics", action="store_true")
     args = parser.parse_args()
-    package_trial(DIAG_OUT if args.diagnostics else OUT, args.include_local_sounds)
+    package_extras(DIAG_OUT if args.diagnostics else OUT, args.include_local_sounds)

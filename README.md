@@ -4,9 +4,15 @@ Five native games and selectable electronic shutter sounds for the OM SYSTEM
 OM-3, firmware 1.1 (E147 build 1100), based on
 [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) v0.26.2.
 
+The latest combined build, `8bf67c77473a`, was tested on a real OM-3.
+[Install or restore stock](shutter_sound/INSTALL.md) · [Camera test results](docs/STATUS.md)
+
+## Games
+
 Set the creative dial to **COLOR 1–4**, then open **Picture Mode → Games**
-from the Super Control Panel. MENU backs up one level. A shutter half-press
-returns to shooting.
+from the Super Control Panel. Live-view display updates pause while the
+launcher or a game is open and resume on exit. MENU backs up one level.
+A shutter half-press returns to shooting.
 
 | Game | Controls |
 | --- | --- |
@@ -16,22 +22,21 @@ returns to shooting.
 | Breakout | Left/right paddle; OK launches |
 | Flappy | Tap or Up/OK; slow pace, variable pipe spacing, live distance |
 
-Only Flappy uses touch. The r5 Picture Mode launcher is the camera-tested
-touch baseline. [Current status and limits](docs/STATUS.md)
+Flappy accepts touch and button controls. Lift your finger before pressing MENU.
+
+## ES sound
 
 Open **MENU → Setup → page 2, Information Record → ES sound**. Press OK,
 use the arrows to pick **Silent**, **5D**, **D850**, **Ciallo**, **Man** or
 **Custom**, and press OK again to select. Use Silent Single or Silent
-Sequential for capture playback. The last three choices load from `OM3MOD`
-on the SD card.
+Sequential for capture playback. **5D** and **D850** are built in. **Ciallo**,
+**Man** and **Custom** load their matching WAV files from `OM3MOD` on the SD
+card. **Silent** is the startup default. [Prepare SD sounds](shutter_sound/SOUND_FILES.md)
 
-## Start here
+## Build and develop
 
-- [Install, use Games and ES sound, and restore stock](shutter_sound/TRIAL_NATIVE.md)
-- [Sound filenames, format, size limits, and conversion](shutter_sound/SOUND_FILES.md)
 - [Build and test the latest image](docs/DEVELOPMENT.md)
 - [Touch development guide](docs/TOUCH_DEVELOPMENT_GUIDE.md)
-- [Earlier r5 Picture Mode install](docs/INSTALL_FIVE_GAMES.md)
 
 After setting up the external inputs in the development guide:
 
@@ -60,9 +65,8 @@ tools/
 and packages. Private historical notes stay in ignored `docs/archive/` and
 `docs/research/`. See [organization decisions](docs/REPOSITORY.md).
 
-The Extras builder starts from the r5 game image and adds the native Setup
-row, capture hooks and SD sound loader. Firmware,
-generated packages, and personal audio files stay out of Git.
+The Extras builder starts from the r5 game image and adds the live-view
+display pause, native Setup row and SD sound loader.
 
 ## License
 

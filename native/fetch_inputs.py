@@ -8,6 +8,7 @@ import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 WORK = ROOT / 'work'
+WORK.mkdir(exist_ok=True)
 urllib.request.install_opener(urllib.request.build_opener(urllib.request.ProxyHandler({})))
 sys.path.insert(0, str(ROOT / 'vendor/caduceus-om3/firmware'))
 import patch

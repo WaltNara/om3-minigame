@@ -11,4 +11,4 @@ unacceptable refresh was reported on the physical camera. Its frequency
 and cause were not measured.
 
 Games now open from **COLOR 1–4 → Picture Mode → Games**. **ES sound** has
-its own native Setup row. [Current install guide](../../shutter_sound/TRIAL_NATIVE.md)
+its own native Setup row. [Current install guide](../../shutter_sound/INSTALL.md)

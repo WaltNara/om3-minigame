@@ -1,12 +1,13 @@
 # Update to five games / restore original OM-3
 
-**Current install target: `om3-games-bundle-five-r5` (accepted touch build).**
-The r3 package described in older copies of this guide was withdrawn for a
-reproduced touch deadlock; r4 stopped the freeze but missed >50% of taps. Neither
-should be reinstalled. r5 clears the contact latch on terminal kinds 3/4/5 and
-has a user-reported good on-camera touch result. See the
-[touch development guide](TOUCH_DEVELOPMENT_GUIDE.md). The steps below apply
-unchanged to r5: substitute its ZIP name where r3 is named historically.
+This guide covers the earlier games-only `om3-games-bundle-five-r5` build.
+For the combined image with paused live-view display and ES sound, use the
+[current install guide](https://github.com/WaltNara/om3-minigame/blob/main/shutter_sound/INSTALL.md).
+
+r5 clears the contact latch on terminal kinds 3/4/5 and has a successful
+user-reported touch test. r3 was withdrawn after a reproduced touch deadlock.
+r4 completed the reply but missed more than half of taps.
+[Touch development guide](TOUCH_DEVELOPMENT_GUIDE.md)
 
 For the standard OM SYSTEM OM-3, firmware 1.1 / E147 build 1100 only.
 This includes Caduceus v0.26.2; no separate installation or optional film files
@@ -17,8 +18,7 @@ on the camera, with rare freezes subsequently reported.
 ## Update from your installed four-game version
 
 1. Fully charge the battery. Back up photos and important camera settings.
-   Extract `om3-games-bundle-five-r5.zip` completely (earlier local copies used
-   the withdrawn r3 name). Keep `restore/` on the PC.
+   Extract `om3-games-bundle-five-r5.zip` completely. Keep `restore/` on the PC.
 2. Open PowerShell in the extracted package folder and verify:
 
    ```powershell

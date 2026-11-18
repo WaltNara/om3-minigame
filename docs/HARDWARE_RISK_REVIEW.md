@@ -1,11 +1,13 @@
 # Hardware risk and evidence
 
-Current baseline is r5; the user reports a perfect camera touch test. That is a
-successful trial, not a measured endurance/safety qualification. See [status](STATUS.md).
+The owner tested the combined build on a real OM-3 and reported successful
+games and touch behavior on the r5 baseline. Endurance and temperature remain
+unmeasured. [Release status](STATUS.md)
 
 Installing modified firmware remains the largest irreversible risk. Use the exact
 OM-3 1.1 / E147 target, full battery and separate verified stock rollback. Preserve
-version-matched OM3MOD data. Follow [installation](INSTALL_FIVE_GAMES.md).
+version-matched OM3MOD data.
+[Installation](https://github.com/WaltNara/om3-minigame/blob/main/shutter_sound/INSTALL.md)
 
 Games use fixed bounded buffers, no custom heap allocation, cancellable GUI
 message timers and stale-generation checks. Touch must complete the camera reply

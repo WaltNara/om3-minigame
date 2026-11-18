@@ -5,7 +5,7 @@ manifest and the accepted r5 game image. The native ES sound row, audio hooks
 and SD-file loader live in `shutter_sound/`. Tests and packaging use the
 final image's hash. See the
 [developer workflow](DEVELOPMENT.md) and
-[install guide](../shutter_sound/TRIAL_NATIVE.md).
+[install guide](../shutter_sound/INSTALL.md).
 
 ## Earlier r5 reorganization
 

@@ -1,4 +1,4 @@
-"""Build, test and package the current OM-3 Games and SD-sound trial."""
+"""Build, test and package the combined OM-3 Games and ES sound firmware."""
 
 import argparse
 import os

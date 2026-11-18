@@ -1,9 +1,7 @@
 # Shutter preset sources
 
-Prepared 2026-11-18. The selected camera recordings are real shutter recordings
-released under CC0, rather than extracted manufacturer firmware sounds. Neither
-camera manufacturer endorses these presets. Their filenames identify the sound
-recordist's stated camera, not an official electronic-shutter sound pack.
+Prepared 2026-11-18. The built-in sounds use CC0 shutter recordings. The
+preset names follow the camera models identified by the recordists.
 
 | Preset | Creator and source | Preparation |
 | --- | --- | --- |
@@ -37,16 +35,10 @@ or audio was copied from those GitHub projects.
 
 ## Continuous shooting
 
-At 10 fps, adjacent shots are 100 ms apart. Each 60 ms burst edit leaves 40 ms
-before the next shot. At 20 fps, the gap is 50 ms, so a following shot cuts off
-the final 10 ms and restarts the clip. Longer single-shot and funny clips also
-restart on every accepted shot, rather than overlap or queue up.
-
-The generated `*-10fps.wav` and `*-20fps.wav` files simulate these boundaries
-offline. They let the owner judge sound character and repetition; they do not
-establish native audio latency, camera cadence, speaker quality or click-free
-hardware interruption. The current SD trial runs native playback in OM-Emu.
-Burst modes still require their own capture-event validation.
+The firmware embeds the 60 ms 5D and D850 edits. During supported bursts, a
+new shot can restart a clip once buffered audio plays. The latest request
+takes precedence when several arrive before the next refill. Generated
+`*-10fps.wav` and `*-20fps.wav` files are offline listening previews.
 
 ## Reproduce and preview
 
@@ -56,12 +48,10 @@ py -3 shutter_sound/test_presets.py
 py -3 shutter_sound/test_retrigger.py
 ```
 
-The tool uses FFmpeg from PATH, an explicit `--ffmpeg` path, or the workspace-local
-`imageio-ffmpeg` dependency. This session installed version 0.6.0 under
-`work/shutter-sound/python-deps`; it did not alter the system Python environment.
+The tool uses FFmpeg from PATH, an explicit `--ffmpeg` path, or `imageio-ffmpeg`
+under `work/shutter-sound/python-deps`.
 
 Output: `work/shutter-sound/presets/`, containing one bank per sound variant,
 ordinary WAV listening previews, 10/20 fps previews, `CREDITS.txt`, and a generated
 `presets.json` with durations, edits and hashes. Silent is represented as a null
-bank. The per-preset bank format is still one slot; the catalog inventories
-separate banks for future menu selection and does not load all sounds into RAM.
+bank. The player uses one buffer for the selected SD WAV.

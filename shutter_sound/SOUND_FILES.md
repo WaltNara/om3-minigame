@@ -8,8 +8,8 @@ to turn the added sound off.
 
 | ES sound choice | SD file | Included duration |
 | --- | --- | --- |
-| Ciallo | `OM3MOD/CIALLO.WAV` | 908 ms, supplied in the local trial |
-| Man | `OM3MOD/MAN.WAV` | 547 ms, supplied in the local trial |
+| Ciallo | `OM3MOD/CIALLO.WAV` | 908 ms in the optional local package |
+| Man | `OM3MOD/MAN.WAV` | 547 ms in the optional local package |
 | Custom | `OM3MOD/CUSTOM.WAV` | Up to 1 second, supplied by you |
 
 5D and D850 are built in. Each is 60 ms. The camera loads SD sounds when
@@ -26,7 +26,7 @@ After replacing a file, select its menu entry again to load the new sound.
 
 ## Preparing CUSTOM.WAV
 
-From the extracted trial folder, with Python 3 installed, run this command.
+From the extracted package folder, with Python 3 installed, run this command.
 Replace `X:` with the SD drive letter.
 
 ```powershell

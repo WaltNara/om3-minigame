@@ -64,6 +64,7 @@ def picture(guess, status):
     return data
 
 def main():
+    OUT.mkdir(parents=True, exist_ok=True)
     spec = json.loads((UP / 'releases/v0.26.2/patch.json').read_text())
     stock = (ROOT / 'work' / patch.STOCK_NAME).read_bytes()
     assert patch.sha(stock) == spec['stock_sha256']
