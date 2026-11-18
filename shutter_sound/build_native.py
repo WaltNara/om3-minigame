@@ -67,11 +67,12 @@ def build():
     defs = dict(meta['symbols'])
     defs.update(native_set_variable=0x610CD5C4, native_keys_resume=0x612540EE,
                 native_panel_id=0x6037E8CC, native_gui_state=0x603713BC,
-                ui_flag=0x60042FCA, set_flag=0x6004CD21, ui_wait=0x6017B78F,
+                ui_flag=0x60042FCA, set_flag=0x6004CD21, ui_wait_resume=0x6017B799,
+                ui_complete_resume=0x6017B7C3,
                 ui_stock_exec=0x6017B861, ui_request=0x6017B9DE,
                 ui_resource_size=0x601D7546, ui_size_resume=0x6017BB25,
                 ui_wave_resume=0x6017BB88, get_drive=0x603F0111, ui_end=0x6017BD85,
-                audio_set_irq=0x60A853C3, set_flag_irq=0x6004CD97,
+                audio_wait=0x60A8537C, audio_end_resume=0x60AE18B4,
                 stock_prepare_player=0x60ADE989,
                 copy_resume=0x60ADCCAB,
                 capbuf_append=0x60BBE8C0, capbuf_taken_picture=0x60BC1F9A,
@@ -160,13 +161,15 @@ def build():
     branch(0x612540E9, 'cff0f8fecc', 'es_menu_keys')
     branch(0x611FFC91, 'dd33d9ecffa010', 'es_menu_view', call=True)
     branch(0x610F6016, 'dcba40e6ffcb', 'es_menu_transition')
-    patch(0x6017B79C, b'\x85\x07', b'\x85\x1f')
+    branch(0x6017B78F, '80ff4204fcacca2f0460', 'es_wait')
+    patch(0x6017B79C, b'\x85\x07', b'\x85\x17')
+    branch(0x6017B7BE, 'cdc7050048', 'es_stock_complete')
     branch(0x6017B857, 'f8e204aa04', 'es_dispatch')
     branch(0x6017BB13, 'dd762e9600e03c', 'es_prepare_player', call=True)
     branch(0x6017BB1A, 'f0678002dd28ba0500e010', 'es_wave')
     branch(0x60BBF68B, 'cd35f2f01c', 'es_capture_main')
     branch(0x60BC22BB, 'cddffc2014', 'es_capture_fast')
-    branch(0x60AE24CF, 'ddf42efaffe020df0004', 'es_copy_done')
+    branch(0x60AE18AD, 'ddcf3afafff038', 'es_end_wait')
     branch(0x60ADCCA6, '430c421c0c', 'es_rewind_copy')
     branch(0x601F1E9E, 'cd1f01e010', 'game_preview_permit')
 

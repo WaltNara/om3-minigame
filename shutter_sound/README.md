@@ -14,8 +14,9 @@ Setup row, **ES sound**. The selection lasts for the powered session.
 - Playback uses the native copy path. A capture requests the sound on UI_OUT
   in Silent Single or Silent Sequential. A new capture rewinds the copy
   cursor before the next refill. The transport drains audio already queued
-  for hardware and closes on TX done. The tests cover repeated starts,
-  byte-matched PCM and a burst with three attacks and a complete final tail.
+  for hardware. UI_OUT closes the player after the native transmitter
+  releases ownership. The tests cover repeated starts after a lost TX-done
+  notification, byte-matched PCM and a burst with a complete final tail.
   [Sound file guide](SOUND_FILES.md)
 
 ## Earlier trials and research

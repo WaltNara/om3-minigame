@@ -142,7 +142,7 @@ try {
     }
     for(const [name,at] of Object.entries({
       save:chooser.symbols.es_menu_keys, capture_main:chooser.symbols.es_capture_main,
-      capture_fast:chooser.symbols.es_capture_fast, copy_done:chooser.symbols.es_copy_done,
+      capture_fast:chooser.symbols.es_capture_fast, end_wait:chooser.symbols.es_end_wait,
       dispatch:chooser.symbols.es_dispatch,
       resource:chooser.symbols.es_wave,flag:0x6004cd21,request:0x6017b9de,
       reply:0x6017be6c,flag_return:0x6004cd92,wake:0x6017b7a7,

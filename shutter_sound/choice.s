@@ -2,18 +2,20 @@
  * the player and runs native completion on its own task. */
 .am33_2
 .text
-.global es_dispatch, es_wave
+.global es_dispatch, es_wave, es_wait, es_stock_complete, es_end_wait
 .extern sound_choice
-.global es_copy_done, es_prepare_player, es_rewind_copy
-.extern audio_set_irq, set_flag_irq, ui_end, stock_prepare_player, copy_resume
-.set COPY_DONE_FLAG, 8
-.extern ui_flag, ui_wait, ui_stock_exec, ui_request
+.global es_prepare_player, es_rewind_copy
+.extern ui_end, stock_prepare_player, copy_resume, audio_wait, audio_end_resume
+.extern ui_flag, ui_wait_resume, ui_complete_resume, ui_stock_exec, ui_request
 .extern ui_resource_size, ui_size_resume, ui_wave_resume
 .extern wave_5d, wave_5d_bytes, wave_d850, wave_d850_bytes
 
 .set UI_BUSY, 0xa32da3a8
 .set UI_OTHER_BUSY, 0xa32da40c
 .set AUD_PLAY_COUNT, 0x62b43dac
+.set TX_OWNER, 0x62b43c30
+.set TX_SEQUENCE, 0x62b43f80
+.set UI_PLAYER, 0xa32da414
 .set WAV_POINTER, 0xa32da344
 .set WAV_BYTES, 0xa32da348
 .set EXPOSURE_FLAG, 16
@@ -23,24 +25,67 @@
 .extern sd_buffer, sd_length, sd_loading, sd_lease
 
 
-/* Stock natural completion and lamp requests run before this dispatch.
- * Give the native synchronous queue priority over capture playback. */
+/* No flag from the audio interrupt is required to wake UI_OUT. Only the
+ * custom playback interval uses a timed wait. Clear the event output first
+ * because a timeout leaves the previous event word in place. */
+es_wait:
+ clr d0
+ mov d0,(36,sp)
+ movbu (copy_active),d0
+ cmp 0,d0
+ beq wait_forever
+ mov 32,d0
+ bra wait_native
+wait_forever:
+ mov -1,d0
+wait_native:
+ mov d0,(4,sp)
+ movhu (ui_flag),d0
+ jmp ui_wait_resume
+
+/* The WAV's end callback can run before the TX interrupt releases its
+ * object. For our clip, defer the stock UI close until that release. */
+es_stock_complete:
+ movbu (copy_active),d0
+ cmp 0,d0
+ beq stock_complete
+ mov (UI_PLAYER),d0
+ mov (copy_player),d1
+ cmp d0,d1
+ beq stock_complete_resume
+stock_complete:
+ call ui_end,[],72
+stock_complete_resume:
+ jmp ui_complete_resume
+
+/* The stock ISR clears TX_OWNER and its callback clears TX_SEQUENCE.
+ * These two native ownership records outlive the flag wakeup. */
 es_dispatch:
- /* The copy path signals TX done even if it skips the WAV end callback.
-  * Close our player on UI_OUT after the native TX-done flag is set. */
- btst COPY_DONE_FLAG,d2
- beq check_native_queue
  movbu (copy_active),d0
  cmp 0,d0
  beq check_native_queue
- clr d0
- movbu d0,(copy_active)
- movbu (UI_BUSY),d0
- cmp 1,d0
+ mov (UI_PLAYER),d0
+ mov (copy_player),d1
+ cmp d0,d1
+ bne released_copy
+ mov (TX_OWNER),d0
+ cmp 0,d0
  bne check_native_queue
+ mov (TX_SEQUENCE),d0
+ cmp 0,d0
+ bne check_native_queue
+ movbu (UI_BUSY),d0
+ cmp 0,d0
+ beq released_copy
+ mov 1,d0
+ movbu d0,(copy_closing)
  mov 2,d0
  movbu d0,(UI_BUSY)
  call ui_end,[],72
+released_copy:
+ clr d0
+ movbu d0,(copy_closing)
+ movbu d0,(copy_active)
  /* If the final period was already queued, replay the newest request now. */
  mov (copy_generation),d0
  mov (copy_consumed),d1
@@ -120,7 +165,7 @@ close_lease:
  clr d0
  movbu d0,(sd_lease)
 wait_more:
- jmp ui_wait
+ jmp es_wait
 stock_exec:
  and 4,d2
  jmp ui_stock_exec
@@ -136,6 +181,8 @@ es_wave:
  mov d0,(WAV_POINTER)
  mov (preview_bytes),d0
  mov d0,(WAV_BYTES)
+ mov (UI_PLAYER),d0
+ mov d0,(copy_player)
  mov 1,d0
  movbu d0,(copy_active)
  mov a2,a0
@@ -195,23 +242,36 @@ native_copy:
  clr d3
  jmp copy_resume
 
-/* Last call in the TX done interrupt callback. Preserve its native signal. */
-es_copy_done:
- call audio_set_irq,[d2,d3,a2],32
- movbu (copy_active),d0
+/* AUD_MAIN handles command 0x49. UI_OUT only arms this one close after
+ * the transmitter has been released. Keep the copy-data teardown and
+ * player close, even if the TX notification has already been consumed. */
+es_end_wait:
+ mov d0,(8,sp)
+ movbu (copy_closing),d0
  cmp 0,d0
- beq done_irq
- movhu (ui_flag),d0
- exth d0
- mov COPY_DONE_FLAG,d1
- call set_flag_irq,[d2,d3,a2],28
-done_irq:
- ret [],4
+ beq wait_stock_end
+ mov (copy_player),d0
+ cmp d0,d2
+ bne wait_stock_end
+ mov (TX_OWNER),d0
+ cmp 0,d0
+ bne wait_stock_end
+ mov (TX_SEQUENCE),d0
+ cmp 0,d0
+ beq end_wait_resume
+wait_stock_end:
+ mov (8,sp),d0
+ call audio_wait,[d2,d3,a2,a3],56
+end_wait_resume:
+ jmp audio_end_resume
+
 copy_active: .byte 0
+copy_closing: .byte 0
 playing_choice: .byte 0
 .balign 4
 copy_generation: .long 0
 copy_consumed: .long 0
+copy_player: .long 0
 
 
 .balign 4

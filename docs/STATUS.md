@@ -2,17 +2,20 @@
 
 ## Current Games and ES sound trial
 
-**OM-3 1.1, E147.** Trial main `23a591b4d8d382027e1db5f7a45f50035a771a0ce3aa8b75c58062843824fc15`.
+**OM-3 1.1, E147.** Current trial main `39c9f50f7c3a5a3f195d7b8f83f5372513a7eb7919efd67c133318ab24854738`.
 Games return to the COLOR 1–4 Picture Mode launcher
 with the r5 game and touch code. While the launcher or a game owns the
 screen, the through-image display path skips new preview submissions. It
-resumes on exit. Sensor and ISP activity and power savings remain unmeasured.
+resumes on exit. The owner confirmed good game play and live-view pause on
+image `23a591b4d8d3`. Sensor and ISP activity and power savings remain unmeasured.
 
 **ES sound** is a native text row under **MENU → Setup → Information Record**.
 Select Silent, 5D, D850, Ciallo, Man or Custom. Capture notifications from the
 E147 buffer manager trigger playback in Silent Single and Silent Sequential.
-The native copy player closes on its TX-done interrupt and rewinds the
-PCM cursor for a new shot. Supported bursts can coalesce sound requests.
+While custom audio is active, UI_OUT checks native transmitter ownership on
+shot events and a 32 ms timed wait. Once the transmitter releases its object,
+the worker closes the owned player through the native audio teardown. A new
+shot can rewind the PCM cursor. Supported bursts can coalesce sound requests.
 The game section loads 232 KiB. The sound section adds 216 KiB for embedded
 clips, code and one SD WAV buffer.
 
@@ -20,7 +23,13 @@ OM-Emu fixtures exercise both native capture call sites. Three consecutive
 5D singles played the complete clip and released the player. A three-shot
 Silent Sequential replay restarted Ciallo twice and played the last clip to
 completion. Custom played 48,000 frames. Mechanical Single and the Silent
-choice emitted zero added audio. Hardware acceptance is pending on the OM-3.
+choice emitted zero added audio. The new replay also drops the first clip's
+TX-done notification and checks that subsequent shots remain audible.
+
+On the preceding `23a591b4d8d3` image, the owner heard ES sound on the first
+shot or burst after boot, followed by standard silent playback. The menu
+still showed the selected sound. Repeated playback on the current image
+requires a camera check.
 
 [Install and use Games and ES sound](../shutter_sound/TRIAL_NATIVE.md) ·
 [Sound file requirements](../shutter_sound/SOUND_FILES.md) ·

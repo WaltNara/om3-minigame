@@ -69,6 +69,12 @@ def package_trial(out, include_local_sounds):
         raise ValueError("The sound replay must verify selection, repeated captures and Silent")
     if results.get("Sequential long-clip restart", {}).get("attacks") != 3:
         raise ValueError("The sound replay must verify consecutive burst restarts")
+    sequential = results.get("Sequential Ciallo after burst", {})
+    if not sequential.get("native_frames") or sequential.get("pcm_sha256") != results.get("Ciallo", {}).get("pcm_sha256"):
+        raise ValueError("The same preset must play again after a completed burst")
+    recovery = results.get("TX completion loss", {})
+    if recovery.get("dropped") != 1 or not recovery.get("subsequent_playback"):
+        raise ValueError("The sound replay must verify playback after a lost TX notification")
     files.update({"evidence/shutter-sound.json": proof,
                   "SOUND_SOURCES.md": (SOURCE / "SOURCES.md").read_bytes(),
                   "SOUND_FILES.md": (SOURCE / "SOUND_FILES.md").read_bytes(),

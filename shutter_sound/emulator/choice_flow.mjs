@@ -119,8 +119,30 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   idle(150);
   assert.equal(lab.get(3265), 30);
   key('s1');
-  for (let index = 0; index < 3; index++)
-    captureSite(build.capture_sites[0], `Single 5D ${index + 1}`, build.presets['5D']);
+  // Drop the first clip's TX completion flag while keeping the native TX
+  // callback and ownership teardown. The next shot must still play.
+  const txSignal = 0x60a853c3;
+  const previous = lab.hooks.get(txSignal);
+  const flag = u16(0x60043156);
+  let dropped = 0;
+  assert.notEqual(flag, 0);
+  lab.hook(notation(txSignal), (h, r) => {
+    if (r.d0 === flag && r.d1 === 0x80000000) {
+      dropped++;
+      h.finish(r, {d0:0});
+    } else if (previous) previous[0](h, r);
+    else h.passthrough(r);
+  }, 'drop TX-done flag');
+  try {
+    captureSite(build.capture_sites[0], 'Single 5D 1', build.presets['5D']);
+  } finally {
+    if (previous) lab.hooks.set(txSignal, previous);
+    else lab.hooks.delete(txSignal);
+  }
+  assert.equal(dropped, 1);
+  captureSite(build.capture_sites[0], 'Single 5D 2', build.presets['5D']);
+  captureSite(build.capture_sites[0], 'Single 5D 3', build.presets['5D']);
+  checks.push({label:'TX completion loss', dropped, subsequent_playback:true});
   key('menu');
   choose(2);
   key('s1');
@@ -169,6 +191,7 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
       assert.deepEqual(pcm.subarray(onsets.at(-1), onsets.at(-1) + sound.length), sound);
       assert.equal(byte(0xa32da3a8), 0);
       checks.push({label:'Sequential long-clip restart', attacks:onsets.length, frames:onsets.map(n => n / 4)});
+      captureSite(build.capture_sites[1], 'Sequential Ciallo after burst', sdPreset(label));
       // Restore Silent Single for the remaining individual presets.
       key('ok');
       for (let i = 0; lab.get(3265) !== 30 && i < 8; i++) {
