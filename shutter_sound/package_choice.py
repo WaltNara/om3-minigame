@@ -81,6 +81,8 @@ def package_trial(out, include_local_sounds):
     resources = results.get("Audio resource release", {})
     if resources.get("opened") != resources.get("closed") or resources.get("idle_checks", 0) < 20:
         raise ValueError("The sound replay must verify native audio resources are released")
+    if results.get("Fresh volume per playback", {}).get("requests", 0) < 20:
+        raise ValueError("The sound replay must verify fresh volume values on repeated requests")
     diagnostics = meta.get("diagnostics", False)
     if diagnostics:
         rows = results.get("On-camera audio status", {}).get("rows", [])

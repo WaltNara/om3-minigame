@@ -45,6 +45,14 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   const notation = address => address - 0x10021020;
   const u16 = at => Buffer.from(sim.read(at, 2)).readUInt16LE();
   const resources = {opened:0, closed:0, idle_checks:0};
+  let volumeRequests = 0;
+  lab.observe(notation(0x60ae40c0), (_h, r) => {
+    const volume = sim.u32(r.a0 + 48);
+    if (volume < build.wave_start || volume >= build.wave_end) return;
+    volumeRequests++;
+    assert.deepEqual([0, 4, 8, 12].map(offset => sim.u32(volume + offset)),
+      [100, 100, 100, 0], `custom playback #${volumeRequests} must supply fresh volume values`);
+  }, 'ES audio volume');
   for (const [name, at] of Object.entries({opened:0x60ade7b2, closed:0x60ade830})) {
     lab.observe(notation(at), (_h, r) => { if ((r.d0 | 0) >= 0) resources[name]++; }, name);
   }
@@ -271,5 +279,7 @@ export function testChoice(player, build, audio, saveDriveFrame, sdFiles) {
   key('s1');
   captureSite(build.capture_sites[0], 'Silent Single with Silent selected', null);
   checks.push({label:'Audio resource release', ...resources});
+  assert.ok(volumeRequests >= 20, 'repeated custom playbacks verified at the volume command');
+  checks.push({label:'Fresh volume per playback', requests:volumeRequests});
   return checks;
 }

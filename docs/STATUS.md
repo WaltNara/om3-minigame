@@ -2,7 +2,7 @@
 
 ## Current Games and ES sound trial
 
-**OM-3 1.1, E147.** Current trial main `ef4b4885dad7c229bc19ca0d1119334600d77a2eaee1f7738eace6456e7c8508`.
+**OM-3 1.1, E147.** Current trial main `8bf67c77473aafecd0f6f7ef07d4e31e8aaa8a737f26ec1f87a79a6936533afa`.
 Games return to the COLOR 1–4 Picture Mode launcher
 with the r5 game and touch code. While the launcher or a game owns the
 screen, the through-image display path skips new preview submissions. It
@@ -33,8 +33,14 @@ and released WAV buffer leases across repeated shots.
 On `23a591b4d8d3`, the owner heard ES sound on the first shot or burst after
 boot, followed by standard silent playback. The menu still showed the selected
 sound. The owner reported the same behavior on `ef4b4885dad7` after the cleanup
-change. Status image `3caaf37a7cd6` adds an INFO readout to the ES sound row
-to trace capture notifications and player state on the camera.
+change. On status image `3caaf37a7cd6`, only the first of four spaced 5D
+shots was audible. All four shots reached the player and its close routine.
+The native volume command divides the caller's values in place. The mod
+reused those converted values, reducing its input on each shot from 100
+to 10, then 1, then 0. The new image refreshes the volume values before each
+request. The replay checks the request at the native volume handler because
+the emulator's PCM output does not apply the physical speaker volume.
+Repeated playback on the updated camera still needs confirmation.
 [ES sound status](../shutter_sound/ES_STATUS.md)
 
 [Install and use Games and ES sound](../shutter_sound/TRIAL_NATIVE.md) ·

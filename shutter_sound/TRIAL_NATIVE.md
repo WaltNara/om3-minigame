@@ -29,8 +29,9 @@ for paths and conversion.
 
 On fast bursts, a newer request can replace the rest of a long clip once the
 already buffered audio plays. OM-Emu checks this behavior at the native
-capture call sites. Repeated playback on the camera remains to be confirmed.
-To check the former first-shot failure, select one preset, take three shots
+capture call sites. The firmware supplies fresh volume values for each new
+playback because the native audio task converts the values in place.
+To check repeated playback on the camera, select one preset, take three shots
 with pauses between them, and listen for the same sound each time. Then try
 two separate bursts with the preset still selected.
 

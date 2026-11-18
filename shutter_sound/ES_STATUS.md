@@ -32,6 +32,13 @@ worker. If `Wake` keeps increasing, compare `Ask` with `Open` to see whether
 the player accepted each request. `Close` and the last row show whether the
 previous player released its resources.
 
+On the first diagnostic image (`3caaf37a7cd6`), the owner heard only the first
+of four 5D shots. Every capture, notification, request, open and close counter
+was `04`. Drive and gate read `1E 08`, and Busy, Play and TX were all `00`.
+The native volume handler divides the caller's gain values in place. Reusing
+the record reduced its values from 100 to 10, then 1, then 0. The playback
+worker now supplies fresh values before each request.
+
 To rebuild this image from the repository, run
 `py -3 build/extras.py all --diagnostics`. The ordinary build uses the same
 command without `--diagnostics`.

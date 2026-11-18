@@ -217,6 +217,12 @@ set_preview:
  clr d0
  mov d0,(copy_generation)
  mov d0,(copy_consumed)
+ /* AUD_MAIN's 0x22 command converts the percentages in the caller's
+  * record in place. Refill it before handing it to the stock UI driver. */
+ mov 100,d0
+ mov d0,(preview_volume)
+ mov d0,(preview_volume+4)
+ mov d0,(preview_volume+8)
  mov preview_request,a0
  call ui_request,[d2,d3,a2,a3],16
 close_lease:
@@ -347,4 +353,5 @@ preview_pointer: .long 0
 preview_bytes: .long 0
 preview_request:
  .long 0,0,0,0,0              /* play, stock mode, resource ID, timing */
- .long 100,100,100,0           /* native volume record */
+preview_volume:
+ .long 0,0,0,0                /* speaker, video, HDMI, headphones */
