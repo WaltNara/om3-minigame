@@ -4,7 +4,6 @@
   "firmware": "1.1",
   "stock_main_sha256": "5e8d376e9111a44ac0352f26030d7c1b17026d42c45f3600cfa02a0e8c5b7d59",
   "r5_main_sha256": "a3b5e0aa720f3703f6d3adcf771edb855ac99d63c24c116816976ff37c203ed8",
-  "extras_main_sha256": "2912d4c11c58ed2056b33dd5fd14f89a2b37df4d43ba2caab95ed28bdc057fea",
   "notation_base": "0x50000000",
   "runtime_base": "0x60021020",
   "functions": {

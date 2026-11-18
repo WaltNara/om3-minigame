@@ -1,59 +1,107 @@
-"""Package the exact emulator-verified Silent Single and Extras trial."""
+"""Package the exact image that passed the Picture Mode and ES sound replays."""
 
 import argparse
 import hashlib
 import json
 from pathlib import Path
 import sys
+import tempfile
+import zipfile
 
 from bank import decode
-from build_choice import ROOT, SD_OUT, SINGLE_OUT, SD_MAX_BYTES, WORK
-from build_native import OUT as NATIVE_OUT
+from build_native import OUT, SD_MAX_BYTES, SOURCE, WORK
+from memory import ROOT
 
-sys.path.insert(0, str(ROOT / "menu_extension"))
-from package_trial import package_trial
+sys.path.insert(0, str(ROOT / "build"))
+import manifest
+from package import firmware_container
+
+
+def package_trial(out, include_local_sounds):
+    meta = json.loads((out / "build.json").read_text())
+    main = (out / "row-main.bin").read_bytes()
+    digest = hashlib.sha256(main).hexdigest()
+    report = json.loads((out / "replay.json").read_text())
+    if (report.get("status"), report.get("sha256"), meta["candidate_sha256"]) != ("pass", digest, digest):
+        raise ValueError("The game and menu replay must pass for this candidate")
+    if [row.get("permit") for row in report.get("previewGate", [])] != [1, 0, 0, 1, 1]:
+        raise ValueError("The game preview gate must pass entry and exit checks")
+    regressions = {}
+    for folder in ("touch-reply", "outside", "validation"):
+        relative = folder + "/validation.json"
+        blob = (out / relative).read_bytes()
+        manifest.check_report(json.loads(blob), digest)
+        regressions["evidence/" + relative] = blob
+    data = manifest.load()
+    container, spec = firmware_container(data, main)
+    release = ROOT / data["install"]["release_dir"]
+    card = {Path(name.lstrip("*")).name: checksum for checksum, name in
+            (line.split(maxsplit=2)[:2] for line in (release / "SHA256SUMS").read_text().splitlines() if line.strip())}
+    files = {
+        "card/DCOLYMP/E1479999.BIN": container,
+        "restore/DCOLYMP/E1479999.BIN": (ROOT / "work" / spec["stock_file"]).read_bytes(),
+        "Verify-Package.ps1": (ROOT / "build/Verify-Package.ps1").read_bytes(),
+        "README.md": (SOURCE / "TRIAL_NATIVE.md").read_bytes(),
+        "UPSTREAM_INSTALL.md": (ROOT / "vendor/caduceus-om3/docs/INSTALL.md").read_bytes(),
+        "LICENSE": (ROOT / "LICENSE").read_bytes(),
+        "NOTICE": (ROOT / "NOTICE").read_bytes(),
+        "evidence/replay.json": (out / "replay.json").read_bytes(),
+        **regressions,
+    }
+    for name in data["install"]["version_matched_card_files"]:
+        blob = (release / name).read_bytes()
+        if hashlib.sha256(blob).hexdigest() != card[name]:
+            raise ValueError(f"Unexpected card asset {name}")
+        files["card/OM3MOD/" + name] = blob
+    pictures = ("setup", "sound", "launcher", "2048", "flappy")
+    for name in pictures:
+        files["evidence/" + name + ".png"] = (out / (name + ".png")).read_bytes()
+
+    proof = (out / "sound-preview.json").read_bytes()
+    playback = json.loads(proof)
+    if (playback.get("status"), playback.get("image_sha256")) != ("passed", digest):
+        raise ValueError("The native sound replay must pass for this candidate")
+    results = {row["label"]: row for row in playback["checks"]}
+    expected = [("Mechanical Single", 0), ("Single D850", 2880),
+                ("Silent Single with Silent selected", 0), ("Custom", 48000),
+                *((f"Single 5D {i}", 2880) for i in (1, 2, 3))]
+    if any(results.get(label, {}).get("native_frames") != count for label, count in expected):
+        raise ValueError("The sound replay must verify selection, repeated captures and Silent")
+    if results.get("Sequential long-clip restart", {}).get("attacks") != 3:
+        raise ValueError("The sound replay must verify consecutive burst restarts")
+    files.update({"evidence/shutter-sound.json": proof,
+                  "SOUND_SOURCES.md": (SOURCE / "SOURCES.md").read_bytes(),
+                  "SOUND_FILES.md": (SOURCE / "SOUND_FILES.md").read_bytes(),
+                  "tools/convert.py": (SOURCE / "convert.py").read_bytes(),
+                  "tools/bank.py": (SOURCE / "bank.py").read_bytes()})
+    if include_local_sounds:
+        for name, stem in (("Ciallo", "ciallo-full"), ("Man", "man-full")):
+            preset = decode((WORK / "shutter-sound/presets" / (stem + ".BIN")).read_bytes())
+            pcm_digest = hashlib.sha256(preset["pcm"]).hexdigest()
+            if len(preset["wav"]) > SD_MAX_BYTES or results.get(name, {}).get("pcm_sha256") != pcm_digest:
+                raise ValueError(f"SD replay must verify the exact {name} file")
+            files[f"card/OM3MOD/{name.upper()}.WAV"] = preset["wav"]
+    files["SHA256SUMS"] = "".join(f"{hashlib.sha256(blob).hexdigest()}  {name}\n"
+                                  for name, blob in sorted(files.items())).encode("ascii")
+    dest = ROOT / "artifacts" / f"om3-es-native-trial-{digest[:12]}.zip"
+    dest.parent.mkdir(exist_ok=True)
+    # Publish only a completely written and verified ZIP. Each main image gets
+    # its own filename, including rebuilds of a previously tested candidate.
+    with tempfile.TemporaryDirectory(dir=dest.parent) as tmp:
+        archive = Path(tmp) / dest.name
+        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as output:
+            for name, blob in files.items():
+                output.writestr(name, blob)
+        with zipfile.ZipFile(archive) as result:
+            if set(result.namelist()) != files.keys() or any(
+                    result.read(name) != blob for name, blob in files.items()):
+                raise ValueError("Archive readback differs")
+        archive.replace(dest)
+    print(dest)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    modes = parser.add_mutually_exclusive_group()
-    modes.add_argument("--sd", action="store_true")
-    modes.add_argument("--native-menu", action="store_true")
     parser.add_argument("--include-local-sounds", action="store_true")
     args = parser.parse_args()
-    sd = args.sd or args.native_menu
-    if args.include_local_sounds and not sd:
-        parser.error("--include-local-sounds requires --sd or --native-menu")
-    here = Path(__file__).resolve().parent
-    out = NATIVE_OUT if args.native_menu else SD_OUT if args.sd else SINGLE_OUT
-    proof = out / "sound-preview.json"
-    checks = json.loads(proof.read_bytes()).get("checks", [])
-    results = {row["label"]: row for row in checks}
-    expected = [
-        ("5D", 2880), ("D850", 2880), ("Mechanical Single", 0),
-        ("Silent Single", 2880), ("Silent", 0), ("Silent Single with Silent selected", 0)
-    ]
-    if args.native_menu:
-        expected = [("Mechanical Single", 0), ("Single D850", 2880),
-                    ("Silent Single with Silent selected", 0), ("Custom", 48000),
-                    *((f"Single 5D {i}", 2880) for i in (1, 2, 3))]
-        if results.get("Sequential long-clip restart", {}).get("attacks") != 3:
-            raise ValueError("The sound replay must verify consecutive burst restarts")
-    if any(results.get(label, {}).get("native_frames") != count for label, count in expected):
-        raise ValueError("The sound replay must verify selection, repeated captures and Silent")
-    files = {}
-    if sd:
-        if args.include_local_sounds:
-            for name, file in (("Ciallo", "ciallo-full"), ("Man", "man-full")):
-                preset = decode((WORK / "shutter-sound/presets" / (file + ".BIN")).read_bytes())
-                digest = hashlib.sha256(preset["pcm"]).hexdigest()
-                if len(preset["wav"]) > SD_MAX_BYTES or results.get(name, {}).get("pcm_sha256") != digest:
-                    raise ValueError(f"SD replay must verify the exact {name} file")
-                files[f"card/OM3MOD/{name.upper()}.WAV"] = preset["wav"]
-        if not args.native_menu and not results.get("Silent Single with Custom selected", {}).get("native_frames"):
-            raise ValueError("The SD replay must verify Custom on exposure")
-        files.update({"SOUND_FILES.md": (here / "SOUND_FILES.md").read_bytes(),
-                      "tools/convert.py": (here / "convert.py").read_bytes(),
-                      "tools/bank.py": (here / "bank.py").read_bytes()})
-    instructions = here / ("TRIAL_NATIVE.md" if args.native_menu else "TRIAL_SD.md" if sd else "TRIAL.md")
-    package_trial(out, instructions, (proof, here / "SOURCES.md"), files)
+    package_trial(OUT, args.include_local_sounds)

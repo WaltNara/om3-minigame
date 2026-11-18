@@ -1,4 +1,4 @@
-// Replay through the camera application, ListMenu and GUI task on E147.
+// Replay the native E147 Picture Mode launcher through the application and GUI tasks.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
@@ -20,13 +20,12 @@ const {A} = await imp('src/fw/model.mjs');
 const {runtime} = await imp('src/lab/hle.mjs');
 const {CA_TASK_ENTRIES} = await imp('src/lab/camapp.mjs');
 const M = await imp('src/lab/menudata.mjs');
-const out = path.resolve(root, process.env.OM3_MENU_BUILD ?? 'work/menu-extension/games');
+const out = path.resolve(root, process.env.OM3_FLAPPY_BUILD ?? 'work/shutter-sound/native');
 const manifest = JSON.parse(fs.readFileSync(path.join(out, 'build.json')));
-const pictureMode = manifest.host === 'picture-mode';
 const sy = manifest.symbols, raw = fs.readFileSync(path.join(out, 'row-main.bin'));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 assert.equal(sha(raw), manifest.candidate_sha256);
-const base=fs.readFileSync(path.join(root,pictureMode?'work/current-games/row-main.bin':'work/native-build/base-main.bin'));
+const base=fs.readFileSync(path.join(root,'work/current-games/row-main.bin'));
 assert.equal(sha(base),manifest.base_sha256);
 const tables=new M.Image(base), candidate=new M.Image(raw), mode=manifest.mode;
 assert.deepEqual(M.tabs(candidate),M.tabs(tables));
@@ -39,7 +38,7 @@ for (const [id,page] of M.groups(tables)) {
     assert.deepEqual(next.labels.slice(0,-1),page.labels);
     assert.deepEqual(next.helps.slice(0,-1),page.helps);
     assert.deepEqual(next.values,page.values);
-    assert.deepEqual(next.labels.at(-1),{key:mode,type:5,id:0,literal:pictureMode?'ES sound':'Extras'});
+    assert.deepEqual(next.labels.at(-1),{key:mode,type:5,id:0,literal:'ES sound'});
   }
 }
 assert.ok(!M.custom_value_handlers(tables).has(mode) && !M.mode_alias(tables).has(mode));
@@ -78,7 +77,7 @@ try {
   });
   const touch = report.touch;
   let touchFrame=null;
-  observe((sy.menu_touch ?? sy.flappy_touch_repaired)-0x10021020,r=>{
+  observe(sy.flappy_touch_repaired-0x10021020,r=>{
     assert.equal(touchFrame,null);
     const record=sim.u32(r.a3+12);
     touchFrame={regs:Object.fromEntries(['d0','d1','d3','a0','a1','a2','a3','sp'].map(k=>[k,r[k]])),
@@ -115,15 +114,6 @@ try {
     const [w,h,pixels] = s.frame('now', false);
     const rgb=words_to_rgb(pixels);
     write_png(path.join(out,name+'.png'),w,h,rgb);
-    if (name==='extras' || name==='sound') {
-      const rows=name==='extras' ? [80,205,285] : [64,140,198,256,314,372,480];
-      for (const y of rows) {
-        let ink=0;
-        for(let j=y;j<y+16;j++) for(let x=278;x<720;x++)
-          if(rgb[(j*w+x)*3]>160) ink++;
-        assert.ok(ink>20,`Missing text on ${name} at y=${y}`);
-      }
-    }
     return sha(rgb);
   };
   const checkPreview = (stage, expected) => {
@@ -156,33 +146,9 @@ try {
     key('ok','launcher'); assert.equal(state(),1); picture('launcher');
   };
   key('s1');
-  if (pictureMode) {
-    checkPreview('shooting', 1);
-    openPictureGames();
-    checkPreview('launcher', 0);
-  } else {
-  key('menu','setup'); assert.equal(panel(),329);
-  assert.equal(s.through_off,true);
-  for(let i=0;i<3;i++) key('down');
-  picture('setup');
-  key('info','row-help'); assert.equal(byte(sy.games_row_selected),0);
-  key('info','row-help-close'); assert.equal(byte(sy.games_row_selected),1);
-  key('ok','extras'); assert.equal(state(),7); picture('extras');
-  const dial=(id,n)=>{s.dial_input(id,n);s.camapp.pump();idle(200);};
-  dial('main',1); assert.equal(byte(sy.extras_selection),1,'rear dial in Extras');
-  dial('main',-1); assert.equal(byte(sy.extras_selection),0);
-  key('down'); key('ok','sound'); assert.equal(state(),8);
-  assert.equal(byte(sy.sound_choice),0); assert.equal(byte(sy.sound_cursor),0);
-  key('down'); key('down'); picture('sound');
-  key('ok','choose-d850'); assert.equal(byte(sy.sound_choice),2); assert.equal(state(),7);
-  key('ok','reopen-sound'); assert.equal(byte(sy.sound_cursor),2);
-  key('down'); key('menu','cancel-sound'); assert.equal(byte(sy.sound_choice),2);
-  key('menu','back-to-setup'); assert.equal(state(),0); assert.equal(panel(),329);
-  key('ok','extras-again'); assert.equal(state(),7);
-  key('ok','launcher'); assert.equal(state(),1); picture('launcher');
-  key('menu','back-to-extras'); assert.equal(state(),7);
-  key('ok','reopen-launcher'); assert.equal(state(),1);
-  }
+  checkPreview('shooting', 1);
+  openPictureGames();
+  checkPreview('launcher', 0);
   key('ok','2048'); assert.equal(state(),2); const before=Buffer.from(sim.read(sy.board,16));
   for(const k of ['left','down','right']) key(k);
   assert.notDeepEqual(Buffer.from(sim.read(sy.board,16)),before); picture('2048');
@@ -195,7 +161,7 @@ try {
       if(name==='breakout') {key('ok','serve'); assert.equal(sim.u32(sy.breakout_state+20),1);}
       const ballY=sim.u32(sy.breakout_state+8);
       assert.notEqual(timer(),0); const start=ticks(); idle(1500); snap(name+'-idle');
-      assert.ok(ticks()>start); assert.equal(s.through_off,!pictureMode);
+      assert.ok(ticks()>start); assert.equal(s.through_off,false);
       if(name==='breakout') assert.notEqual(sim.u32(sy.breakout_state+8),ballY);
     }
     if(selection===4) break;
@@ -238,22 +204,10 @@ try {
   assert.equal(state(),0); assert.equal(timer(),0); assert.equal(s.through_off,false);
   checkPreview('after shutter exit', 1);
   const stopped=ticks(); idle(1500); assert.equal(ticks(),stopped);
-  assert.deepEqual(report.through.filter(e=>e.stage!=='startup' && e.stage!=='s1'), pictureMode ? [] :
-    [{stage:'setup',ctrl:0},{stage:'shutter-exit',ctrl:1}]);
+  assert.deepEqual(report.through.filter(e=>e.stage!=='startup' && e.stage!=='s1'), []);
   assert.ok(report.snapshots.every(r=>r.images===0 && r.recording===null));
-  if (pictureMode) {
-    openPictureGames();
-    for(let i=0;byte(sy.games_selection)!==4 && i<6;i++) key('down');
-  } else {
-  key('menu','reopen-setup'); assert.equal(panel(),329); assert.equal(s.through_off,true);
-  key('ok','reopen-extras'); assert.equal(state(),7);
-  // A touch on the opaque hub cannot hit one of the Setup widgets underneath.
-  gesture(1); gesture(4); assert.equal(state(),7); assert.equal(byte(sy.flappy_drain),0);
-  key('ok'); assert.equal(state(),1);
-  key('up'); assert.equal(byte(sy.games_selection),5);
-  key('ok','launcher-back-item'); assert.equal(state(),7);
-  key('ok'); key('up'); key('up'); assert.equal(byte(sy.games_selection),4);
-  }
+  openPictureGames();
+  for(let i=0;byte(sy.games_selection)!==4 && i<6;i++) key('down');
   key('ok'); assert.equal(state(),6); assert.notEqual(timer(),0);
   gesture(1); assert.equal(byte(sy.flappy_contact),1);
   stage='display-change'; s.display_input('eye',1); idle(300); snap(stage);

@@ -27,9 +27,9 @@ def sha(data):
 
 def main():
     layout = json.loads(Path(__file__).with_name("layout.json").read_text(encoding="utf-8"))
-    image = bytearray((WORK / "menu-extension/games/row-main.bin").read_bytes())
-    if sha(image) != layout["extras_main_sha256"]:
-        raise ValueError("Memory probe requires the pinned Extras trial")
+    image = bytearray((WORK / "current-games/row-main.bin").read_bytes())
+    if sha(image) != layout["r5_main_sha256"]:
+        raise ValueError("Memory probe requires the pinned r5 image")
 
     u32 = lambda address: struct.unpack_from("<I", image, address - BASE)[0]
     sections = []
@@ -44,7 +44,7 @@ def main():
         sections.append(dict(number=i + 1, dest=dest, flash=flash, flag=flag,
                              end=end, end_word=getter + 2))
     if any(a["end"] > b["dest"] for a, b in zip(sections, sections[1:])):
-        raise ValueError("Overlapping load regions in Extras baseline")
+        raise ValueError("Overlapping load regions in r5 baseline")
 
     first = sections[0]
     trial_start = first["end"]
@@ -90,7 +90,7 @@ def main():
     bank_sizes = [sum(item["bank_bytes"] for item in family.values()) for family in presets.values()]
     report = {
         "schema": 1, "scope": "Emulator-only loader and playback evidence",
-        "sha256": sha(image), "baseline_sha256": layout["extras_main_sha256"],
+        "sha256": sha(image), "baseline_sha256": layout["r5_main_sha256"],
         "main_runtime_base": BASE, "sections_before_probe": sections,
         "games_loaded_bytes": loaded, "games_tested_limit_bytes": limit,
         "games_reserved_bytes": reserve, "games_loadable_before_reserve_bytes": limit - reserve - loaded,

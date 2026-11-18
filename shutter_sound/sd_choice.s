@@ -4,10 +4,6 @@
 .text
 .global es_load_sd, sd_length, sd_loading, sd_lease
 .extern sound_choice
-.ifndef NATIVE_MENU
-.global es_select_error, es_open_sound
-.extern extra_redraw, open_sound_resume
-.endif
 .extern fopen, fread, fclose, sd_buffer, wav_limit
 
 .set UI_BUSY, 0xa32da3a8
@@ -93,7 +89,6 @@ next_word:
  add 4,d1
  cmp 112,d1
  bcs check_header
-.ifdef NATIVE_MENU
  /* The file format stays compatible. The native copy player uses SHUT1. */
  mov copy_key,a3
  mov 20,d1
@@ -105,7 +100,6 @@ copy_key_word:
  inc4 a2
  add -4,d1
  bne copy_key_word
-.endif
  mov d3,(sd_length)
  clr d0
  movbu d0,(sd_loading)
@@ -119,47 +113,19 @@ missing:
  clr d0
  movbu d0,(sound_choice)
 missing_notice:
-.ifdef NATIVE_MENU
  mov 1,d1
-.else
- mov sd_msg_missing+0x40000000,d1
-.endif
  bra reject
 bad_wav:
-.ifdef NATIVE_MENU
  mov 2,d1
-.else
- mov sd_msg_bad+0x40000000,d1
-.endif
  bra reject
 busy:
-.ifdef NATIVE_MENU
  mov 3,d1
-.else
- mov sd_msg_busy+0x40000000,d1
-.endif
 reject:
-.ifndef NATIVE_MENU
- mov d1,(sd_notice)
-.endif
  clr d0
  movbu d0,(sd_loading)
-.ifdef NATIVE_MENU
  mov d1,d0
-.else
- mov 1,d0
-.endif
  ret [d2,d3,a2,a3],28
 
-.ifndef NATIVE_MENU
-es_open_sound:
- mov sd_msg_ready+0x40000000,d2
- mov d2,(sd_notice)
- movbu (sound_choice),d2
- jmp open_sound_resume
-es_select_error:
- jmp extra_redraw
-.endif
 
 .balign 4
 sd_length: .long 0
@@ -172,11 +138,7 @@ ciallo_path: .asciz "C:\\OM3MOD\\CIALLO.WAV"
 man_path: .asciz "C:\\OM3MOD\\MAN.WAV"
 custom_path: .asciz "C:\\OM3MOD\\CUSTOM.WAV"
 
-.ifdef NATIVE_MENU
 .balign 4
 copy_key: .asciz "PRM_AUD_SHUT1_VOL"
 .balign 4
 .include "native_wav.inc"
-.else
-.include "sd_custom.inc"
-.endif

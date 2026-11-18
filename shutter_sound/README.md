@@ -20,16 +20,6 @@ Setup row, **ES sound**. The selection lasts for the powered session.
 
 ## Earlier trials and research
 
-- The [full-menu SD trial](TRIAL_SD.md) opened the games in Setup, with a
-  physical refresh problem. Its selection preview played once on an OM-3.
-  The simulated `START_EXPOSE` results from that build bypass the real
-  capture call sites. [Earlier research](../docs/SHUTTER_SOUND_PLAN.md)
-- The [earlier built-in trial](TRIAL.md) plays the selected **5D** or **D850**
-  clip on exposure start. OK also previews the choice while live view is
-  stopped. OM-Emu drove the stock SCP, selected Silent Single and emitted
-  the exact D850 samples through native UI_OUT. Half-press, mechanical Single
-  and a Silent Single with the Silent choice emitted zero added PCM. The
-  physical body and the 24 KiB loader extension still need a camera trial.
 - The repaired E147 emulator probe plays PCM byte for byte through native audio
   code. The 100-cycle run released the player each time. The AF-key control uses
   OM-Emu's synthesized beep. The OM-3 factory samples are outside the updater.
@@ -48,18 +38,9 @@ Setup row, **ES sound**. The selection lasts for the powered session.
   32 KiB of extra pages and played the complete 5D WAV from the loader's
   uncached address. OM-Emu supplies the NAND read. The 224 KiB erased run beyond
   the existing section-1 copy still needs a physical ownership check.
-- The E147 Extras capture trace had one emulated release and zero hits at the
-  two candidate capture addresses. S-RELSEQ handles that release. Direct
-  calls to the mapped CapBuf append linked two fixture buffers correctly.
-  The firmware also calls the append during editing, so shooting needs a
-  qualified exposure notification. The worker and an owned sound-bank
-  allocation are needed to extend this approach to other drives and longer
-  samples. The Silent Single trial instead uses the application's
-  `START_EXPOSE` notification. OM-Emu generates that notice through S-RELSEQ.
-
 ## Current implementation
 
-- `layout.json` pins E147 stock, accepted r5 and Extras hashes, candidate functions,
+- `layout.json` pins E147 stock and accepted r5 hashes, candidate functions,
   corrected audio globals and an erased region for further loader analysis.
 - `audit.py` verifies both images, expected function prefixes and erased candidate
   bytes. It produces evidence only; function prefixes do not establish the ABI
@@ -70,9 +51,8 @@ Setup row, **ES sound**. The selection lasts for the powered session.
 - `convert.py` generates an original deterministic click or converts a PCM16 mono
   or stereo WAV, resampling, removing leading silence and limiting peak amplitude.
   Its linear resampler is intended for initial short-clip experiments. It rejects
-  clips beyond five seconds rather than silently cutting them. The camera loader
-  does not exist yet; long clips need a verified RAM allocation beyond the small
-  erased code region (five seconds of PCM needs 960,000 bytes).
+  experimental banks beyond five seconds. Use the separate one-second SD
+  format for the camera loader.
 - `retrigger.py` is the executable host reference for a stop/start worker.
   The implemented copy renderer instead moves the clip cursor in AUD_COPY_DATA.
   It handles only copies from the dedicated transport WAV, with one latest
@@ -83,7 +63,7 @@ Setup row, **ES sound**. The selection lasts for the powered session.
   the default, represented by no sound bank. See [sources and previews](SOURCES.md).
 - `emulator/map_audio.mjs` derives E147 audio-function candidates using the existing
   E143 mapping engine and checks firmware hashes.
-- `build_copy_retrigger.py` builds an independent raw Extras overlay that uses
+- `build_copy_retrigger.py` builds an independent raw r5 overlay that uses
   padding inside the existing section-6 load. The DMA renderer starts disarmed.
   `memory.py` builds a separate raw image to test the section-1 copy boundary.
 - `emulator/probe.mjs` starts the E147 native audio tasks with a channel-13
@@ -92,12 +72,6 @@ Setup row, **ES sound**. The selection lasts for the powered session.
   host-owned transport WAV for the copied route. The replay labels the
   CPU-2 and NAND stand-ins. The pinned OM-Emu revision is
   `88b753ddb9c0fac35366802133e849600aa519d5`.
-- `build_choice.py --single` builds the Silent Single trial. The chooser
-  and exposure notice post task-context flags. UI_OUT checks the current
-  drive and player availability, then runs native short-sound playback and
-  its release callback. The camera UI identifies drive value 30 as Silent
-  Single and value 32 as Silent Sequential. Only value 30 is enabled.
-
 ## Run
 
 Use `py -3 build/extras.py all` for the current Games and SD-sound trial.
@@ -135,20 +109,6 @@ node shutter_sound/emulator/probe.mjs 2 --render-fps=20 --mute --bank=work/shutt
 node shutter_sound/emulator/probe.mjs 3 --render-control --trace-capture --bank=work/shutter-sound/presets/nikond850-single.BIN --report=work/shutter-sound/probe-render-control.json
 ```
 
-Build and verify the Silent Single trial:
-
-```powershell
-py -3 shutter_sound/build_choice.py --single
-node shutter_sound/emulator/probe.mjs --choice --single --report=work/shutter-sound/single/sound-preview.json
-$env:OM3_MENU_BUILD='work/shutter-sound/single'
-$env:OM3_FLAPPY_BUILD=$env:OM3_MENU_BUILD
-node menu_extension/test_games.mjs
-py -3 tests/test_flappy_touch_reply.py
-py -3 tests/test_flappy.py
-py -3 tests/test_flappy_outside.py
-py -3 shutter_sound/package_choice.py
-```
-
 For a personal sound:
 
 ```powershell
@@ -182,5 +142,4 @@ The little-endian header is 48 bytes:
 The reader rejects unsupported versions, inconsistent or excessive lengths,
 checksum changes, duplicate required chunks, noncanonical metadata, unsupported
 PCM formats and misaligned sample data. A checksum detects corruption; it is not
-an authenticity signature. This format remains experimental until the E147
-native parser and eventual camera loader pass their integration checks.
+an authenticity signature. This format is for developer tools. The camera reads the WAV payload.

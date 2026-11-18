@@ -6,13 +6,19 @@ import struct
 import subprocess
 
 from bank import KEY, decode, make_wav
-from build_choice import (BASE, CODE_START, SD_BUFFER, SD_MAX_BYTES, TC,
-                          WAV_END, WAV_LOADER_END, WAV_START, WORK, aligned, sha)
+from memory import BASE, WORK, aligned, sha
 
 
 OUT = WORK / 'shutter-sound' / 'native'
+TC = WORK / 'toolchain'
 SOURCE = Path(__file__).resolve().parent
 CHOICES = ('Silent', '5D', 'D850', 'Ciallo', 'Man', 'Custom')
+CODE_START = 0x60F59800
+WAV_START = 0x6031F000
+WAV_END = WAV_START + 32 * 1024
+WAV_LOADER_END = 0x60045E84
+SD_BUFFER = 0x60326000
+SD_MAX_BYTES = 112 + 48000 * 4
 
 
 def labels():
@@ -102,9 +108,7 @@ def build():
     sources.append(SOURCE.parent / 'native' / 'game_preview.s')
     for source in sources:
         obj = OUT / (source.stem + '.o')
-        subprocess.run([TC / 'gas/as-new.exe', '-I', OUT, '--defsym', 'NATIVE_MENU=1',
-                        '--defsym', 'SD_CUSTOM=1', '--defsym', 'SINGLE_SHOT=1',
-                        '--defsym', 'BURST_SHOT=1', '-o', obj, source], check=True)
+        subprocess.run([TC / 'gas/as-new.exe', '-I', OUT, '-o', obj, source], check=True)
         objects.append(obj)
     imports = set()
     for obj in objects:

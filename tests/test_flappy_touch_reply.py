@@ -10,7 +10,7 @@ import sys as _sys
 from pathlib import Path as _Path
 _sys.path[:0] = [str(_Path(__file__).resolve().parents[1] / "native"), str(_Path(__file__).resolve().parents[1] / "tests")]
 import hashlib,json,os,subprocess
-from flappy_entry import flappy_entry, replay_for_host
+from flappy_entry import flappy_entry
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -20,7 +20,7 @@ B=R/'work/native-build';m=json.loads((G/'build.json').read_text());sy=m['symbols
 end_kinds=m.get('touch_terminal_kinds',[3])
 assert m['custom_game_touch']
 assert hashlib.sha256((G/'row-main.bin').read_bytes()).hexdigest()==m['candidate_sha256']
-src=replay_for_host((B/'replay.mjs').read_text(),m)
+src=(B/'replay.mjs').read_text()
 src=src.replace('  log.push(e);', '''  e.game=rd(SY.games_state,1)[0]; e.timer=u16(SY.mario_handle);
   e.flight=Array.from({length:9},(_,i)=>u32(SY.flappy_state+4*i));
   e.contact=rd(SY.flappy_contact,1)[0];e.drain=rd(SY.flappy_drain,1)[0];
@@ -33,7 +33,7 @@ const ts=globalThis.ftStats, td=Debugger.attach(lab.sim,{lab});let tf=null;
 const same=(a,b)=>Buffer.from(a).equals(Buffer.from(b));
 td.traceExec((r)=>{
  const g=td.regs();
- if(r.pc===(SY.menu_touch ?? SY.flappy_touch_repaired)){
+ if(r.pc===SY.flappy_touch_repaired){
    if(tf)throw new Error('Recursive touch dispatch');
    const payload=u32(g.a3+12);
    tf={g,payload,event:rd(g.a3,28),record:payload?rd(payload,12):null,owned:false};
@@ -55,7 +55,7 @@ td.traceExec((r)=>{
  }else if(r.pc===0x610c829e)ts.waits++;
  else if(r.pc===0x610c82a0)ts.returned++;
  else if(r.pc===SY.flappy_step && rd(SY.flappy_pending,1)[0])ts.flaps++;
-},{pcs:[SY.menu_touch ?? SY.flappy_touch_repaired,0x61294d13,0x61294ed2,0x61294e57,0x610c0e7e,0x610c829e,0x610c82a0,SY.flappy_step]});
+},{pcs:[SY.flappy_touch_repaired,0x61294d13,0x61294ed2,0x61294e57,0x610c0e7e,0x610c829e,0x610c82a0,SY.flappy_step]});
 function appTouch(kind,x=450,y=300){
  const before={replies:ts.replies,waits:ts.waits,returned:ts.returned};
  const ev=[0,0x03000073,0x03000074,0x03000075,0x03000076,0x03000078,0x03000077,0x03000079][kind];
@@ -79,7 +79,7 @@ src=src.replace("  else if (t.startsWith('hold:'))", '''  else if(t.startsWith('
   else if (t.startsWith('hold:'))''')
 src=src.replace('curStep = t; s.idle_slice(lab.lab_time() + 1200e6)','curStep = t; s.idle_slice(lab.lab_time() + 250e6)')
 (O/'replay.mjs').write_text(src)
-entry=flappy_entry(m)
+entry=flappy_entry()
 press='app-touch:1,450,300 ';release='app-touch:3,450,300 ';tap=press+release
 scripts={
  'repeated':entry+'app-taps:64 info '+tap+'menu s1',
@@ -98,10 +98,6 @@ if end_kinds==[3,4,5]:
         scripts[f'drain-{kind}']=entry+press+'gui-menu '+terminal+'ok '+tap+'menu s1'
     scripts['mixed-endings']=entry+press+release+'app-touch:4,450,300 '+press+'app-touch:5,450,300 '+release+'menu s1'
     scripts['short-tap']=entry+'app-burst:1,4 menu s1'
-if m.get('host')=='list-menu':
-    # Leave Flappy, the launcher and Extras during a held gesture. A new
-    # press on the visible native list must cancel the drain and go to stock.
-    scripts['fresh-outside']=entry+press+'gui-menu gui-menu gui-menu '+tap+'s1'
 env=dict(os.environ,OM_EMU_MODEL='E147')
 for k in ('NCALL','NOUT','WATCH','GAME_STATE','GAME_GC','WRANGE','WSTACK'):env.pop(k,None)
 summaries={}

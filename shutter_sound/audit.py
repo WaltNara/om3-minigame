@@ -12,7 +12,7 @@ def audit(stock, baseline, layout):
         return hashlib.sha256(data).hexdigest()
     if digest(stock) != layout['stock_main_sha256']:
         raise ValueError('stock digest does not match pinned input')
-    if digest(baseline) not in (layout['r5_main_sha256'], layout.get('extras_main_sha256')):
+    if digest(baseline) != layout['r5_main_sha256']:
         raise ValueError('baseline digest does not match pinned input')
     if len(stock) != len(baseline):
         raise ValueError('main block lengths differ')

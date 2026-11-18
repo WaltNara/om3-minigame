@@ -1,16 +1,9 @@
 # Shutter sound checkpoint — 2026-11-18
 
-**After this checkpoint**, the Extras trial gained the five-label, session-only
-chooser. Native playback, loader placement and burst restart have since passed
-isolated emulator experiments. Use the [current audio status](../shutter_sound/README.md)
-and [integration plan](SHUTTER_SOUND_PLAN.md). The entries below describe the
-audio project at the time it was paused.
-
-Paused at the user's request to investigate moving extensions into the full MENU
-interface. No shutter firmware candidate has been built, packaged or installed.
-The accepted five-r5 build remains the camera-tested baseline. Working sources
-are preserved in `shutter_sound/`; generated evidence is in ignored
-`work/shutter-sound/`. This checkpoint supersedes the earlier power-stall diagnosis.
+This checkpoint records the audio work before the first camera sound trials.
+See the [current audio status](../shutter_sound/README.md) for the current
+build. The accepted five-r5 image was the camera-tested games baseline.
+Generated evidence lives in ignored `work/shutter-sound/`.
 
 ## Requirements retained
 
@@ -23,8 +16,6 @@ are preserved in `shutter_sound/`; generated evidence is in ignored
 - Preserve the supplied funny clips in full, within the validated allocation.
   The host converter accepts up to five seconds; camera RAM capacity is unproved.
 - Keep ordinary silent operation and stock AF/movie audio behavior.
-- New direction: Games and shutter controls belong in the full MENU, independent
-  of the creative dial. See the [menu investigation](../menu_extension/README.md).
 
 ## Completed and last verified
 

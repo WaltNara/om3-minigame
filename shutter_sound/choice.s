@@ -1,18 +1,13 @@
-/* E147 Extras speaker trial. The GUI posts one private UI_OUT flag.
- * UI_OUT owns the player and runs native completion on its own task. */
+/* E147 shutter speaker playback. Capture posts to UI_OUT, which owns
+ * the player and runs native completion on its own task. */
 .am33_2
 .text
 .global es_dispatch, es_wave
-.ifndef NATIVE_MENU
-.global es_save_choice
-.extern sound_cursor, sound_choice, show_extras, extra_consumed
-.else
 .extern sound_choice
 .global es_copy_done, es_prepare_player, es_rewind_copy
 .extern audio_set_irq, set_flag_irq, ui_end, stock_prepare_player, copy_resume
 .set COPY_DONE_FLAG, 8
-.endif
-.extern ui_flag, set_flag, ui_wait, ui_stock_exec, ui_request
+.extern ui_flag, ui_wait, ui_stock_exec, ui_request
 .extern ui_resource_size, ui_size_resume, ui_wave_resume
 .extern wave_5d, wave_5d_bytes, wave_d850, wave_d850_bytes
 
@@ -21,74 +16,16 @@
 .set AUD_PLAY_COUNT, 0x62b43dac
 .set WAV_POINTER, 0xa32da344
 .set WAV_BYTES, 0xa32da348
-.set SHUTTER_FLAG, 8
 .set EXPOSURE_FLAG, 16
 
-.ifdef SINGLE_SHOT
-.ifndef NATIVE_MENU
-.global es_exposure
-.extern shoot_post_resume
-.endif
 .extern get_drive
-.endif
 
-.ifdef SD_CUSTOM
-.extern es_load_sd, sd_buffer, sd_length, sd_loading, sd_lease, es_select_error
-.endif
+.extern sd_buffer, sd_length, sd_loading, sd_lease
 
-.ifndef NATIVE_MENU
-es_save_choice:
- movbu (sound_cursor),d2
-.ifndef SD_CUSTOM
- cmp 2,d2
- bhi unavailable
-.endif
- add -20,sp
- mov d0,(4,sp)
- mov d1,(8,sp)
- mov a0,(12,sp)
- mov a1,(16,sp)
-.ifdef SD_CUSTOM
- cmp 3,d2
- bcs commit_choice
- mov d2,d0
- call es_load_sd,[d2,d3,a2,a3],28
- cmp 0,d0
- bne refused
-commit_choice:
-.endif
- movbu d2,(sound_choice)
- cmp 0,d2
- beq confirmed
- movhu (ui_flag),d0
- exth d0
- mov SHUTTER_FLAG,d1
- call set_flag,[d2,d3,a2],40
-confirmed:
- mov (4,sp),d0
- mov (8,sp),d1
- mov (12,sp),a0
- mov (16,sp),a1
- add 20,sp
- jmp show_extras
-.ifdef SD_CUSTOM
-refused:
- mov (4,sp),d0
- mov (8,sp),d1
- mov (12,sp),a0
- mov (16,sp),a1
- add 20,sp
- jmp es_select_error
-.else
-unavailable:
- jmp extra_consumed
-.endif
-.endif
 
 /* Stock natural completion and lamp requests run before this dispatch.
- * Give the native synchronous queue priority and drop a busy preview. */
+ * Give the native synchronous queue priority over capture playback. */
 es_dispatch:
-.ifdef NATIVE_MENU
  /* The copy path signals TX done even if it skips the WAV end callback.
   * Close our player on UI_OUT after the native TX-done flag is set. */
  btst COPY_DONE_FLAG,d2
@@ -111,20 +48,10 @@ es_dispatch:
  beq check_native_queue
  or EXPOSURE_FLAG,d2
 check_native_queue:
-.endif
  btst 4,d2
  bne stock_exec
-.ifdef SINGLE_SHOT
-.ifdef NATIVE_MENU
  btst EXPOSURE_FLAG,d2
-.else
- btst SHUTTER_FLAG|EXPOSURE_FLAG,d2
-.endif
-.else
- btst SHUTTER_FLAG,d2
-.endif
  beq wait_more
-.ifdef NATIVE_MENU
  mov 3265,d0
  call get_drive,[],4
  cmp 30,d0
@@ -144,7 +71,6 @@ check_player:
  mov d0,(copy_generation)
  bra wait_more
 check_busy:
-.endif
  movbu (UI_BUSY),d0
  cmp 0,d0
  bne wait_more
@@ -154,37 +80,17 @@ check_busy:
  movbu (AUD_PLAY_COUNT),d0
  cmp 0,d0
  bne wait_more
-.ifdef SINGLE_SHOT
-.ifndef NATIVE_MENU
- btst SHUTTER_FLAG,d2
- bne selected
- mov 3265,d0
- call get_drive,[],4
- cmp 30,d0                      /* E147 SCP labels 30 as Silent Single. */
-.ifdef BURST_SHOT
- beq selected
- cmp 32,d0                      /* E147 Silent Sequential. */
-.endif
- bne wait_more
-selected:
-.endif
-.endif
  movbu (sound_choice),d0
  cmp 1,d0
  beq preview_5d
  cmp 2,d0
-.ifdef SD_CUSTOM
  bne preview_sd
-.else
- bne wait_more
-.endif
  mov wave_d850,a0
  mov wave_d850_bytes,d1
  bra set_preview
 preview_5d:
  mov wave_5d,a0
  mov wave_5d_bytes,d1
-.ifdef SD_CUSTOM
  bra set_preview
 preview_sd:
  cmp 3,d0
@@ -200,24 +106,19 @@ preview_sd:
  cmp 0,d1
  beq close_lease
  mov sd_buffer,a0
-.endif
 set_preview:
  mov a0,(preview_pointer)
  mov d1,(preview_bytes)
-.ifdef NATIVE_MENU
  movbu (sound_choice),d0
  movbu d0,(playing_choice)
  clr d0
  mov d0,(copy_generation)
  mov d0,(copy_consumed)
-.endif
  mov preview_request,a0
  call ui_request,[d2,d3,a2,a3],16
-.ifdef SD_CUSTOM
 close_lease:
  clr d0
  movbu d0,(sd_lease)
-.endif
 wait_more:
  jmp ui_wait
 stock_exec:
@@ -235,10 +136,8 @@ es_wave:
  mov d0,(WAV_POINTER)
  mov (preview_bytes),d0
  mov d0,(WAV_BYTES)
-.ifdef NATIVE_MENU
  mov 1,d0
  movbu d0,(copy_active)
-.endif
  mov a2,a0
  mov 1,d1
  jmp ui_wave_resume
@@ -248,7 +147,6 @@ stock_wave:
  call ui_resource_size,[d2,d3,a2],16
  jmp ui_size_resume
 
-.ifdef NATIVE_MENU
 /* The UI sound path prepares a short clip. The native copy player already
  * has its format and volume from the ordinary open/volume commands. */
 es_prepare_player:
@@ -314,37 +212,7 @@ playing_choice: .byte 0
 .balign 4
 copy_generation: .long 0
 copy_consumed: .long 0
-.endif
 
-.ifdef SINGLE_SHOT
-.ifndef NATIVE_MENU
-/* CBC_SHOOTING_COMMON posts START_EXPOSE (0x88). Keep the stock
- * publication and do the drive gate and sound work on UI_OUT. */
-es_exposure:
- mov d0,(12,sp)
- mov d1,d3
- cmp 0x88,d0
- bne expose_resume
- movbu (sound_choice),d2
- cmp 0,d2
- beq expose_resume
- add -12,sp
- mov a0,(4,sp)
- mov a1,(8,sp)
- movhu (ui_flag),d0
- exth d0
- mov EXPOSURE_FLAG,d1
- call set_flag,[d2,d3,a2],40
- mov (4,sp),a0
- mov (8,sp),a1
- add 12,sp
- mov (12,sp),d0
- mov d3,d1
-expose_resume:
- mov 188,d2
- jmp shoot_post_resume
-.endif
-.endif
 
 .balign 4
 preview_pointer: .long 0

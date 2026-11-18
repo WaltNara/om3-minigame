@@ -26,10 +26,8 @@ choice emitted zero added audio. Hardware acceptance is pending on the OM-3.
 [Sound file requirements](../shutter_sound/SOUND_FILES.md) ·
 [Build and test](DEVELOPMENT.md)
 
-The previous full-menu trial (`8db210d58a60`) opened Games on the camera with
-unacceptable refresh. Its selection preview played once on the speaker, and
-capture playback failed. The current build uses the original Picture Mode
-launcher and a capture-driven player.
+The Setup Games trial was withdrawn after the camera owner reported disturbing
+refresh during play. [Retired trial record](history/SETUP_GAMES_TRIAL.md)
 
 ## Camera-tested Picture Mode baseline
 

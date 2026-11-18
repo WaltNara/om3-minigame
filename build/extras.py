@@ -11,7 +11,7 @@ import manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 SD_DIR = "work/shutter-sound/native"
-ENV = dict(os.environ, OM3_MENU_BUILD=SD_DIR, OM3_FLAPPY_BUILD=SD_DIR)
+ENV = dict(os.environ, OM3_FLAPPY_BUILD=SD_DIR)
 
 
 def run(program, *args, env=ENV):
@@ -32,9 +32,9 @@ def build():
 def test():
     if not (ROOT / "work/shutter-sound/audio-map.json").is_file():
         run("node", "shutter_sound/emulator/map_audio.mjs")
-    run("node", "shutter_sound/emulator/probe.mjs", "--choice", "--native-menu",
+    run("node", "shutter_sound/emulator/probe.mjs", "--choice",
         f"--report={SD_DIR}/sound-preview.json")
-    run("node", "menu_extension/test_games.mjs")
+    run("node", "tests/test_picture_games.mjs")
     for name in ("test_flappy_touch_reply.py", "test_flappy.py", "test_flappy_outside.py"):
         run(sys.executable, "tests/" + name)
 
@@ -51,7 +51,7 @@ def main():
         test()
     if args.step in ("all", "package"):
         local = ["--include-local-sounds"] if args.include_local_sounds else []
-        run(sys.executable, "shutter_sound/package_choice.py", "--native-menu", *local)
+        run(sys.executable, "shutter_sound/package_choice.py", *local)
 
 
 if __name__ == "__main__":

@@ -43,8 +43,7 @@ try {
   if(![0,10,20].includes(renderFps))throw Error('renderer test supports 10 or 20 fps');
   const renderControl=args.includes('--render-control');
   const testChooser=args.includes('--choice');
-  const choiceDirectory=args.includes('--native-menu')?'native':args.includes('--sd')?'sd':args.includes('--burst')?'burst':
-    args.includes('--single')?'single':'choice';
+  const choiceDirectory='native';
   const mute=args.includes('--mute');
   if(mute&&!renderFps)throw Error('--mute requires a renderer rate');
   let image=loadImage(), placement, renderer, chooser, card;
@@ -132,24 +131,19 @@ try {
     const {testChoice}=await import('./choice_flow.mjs');
     report.scope=chooser.scope;
     report.chooser_trace=[];
-    if (chooser.sound_menu === 'inline') {
-      report.copy_trace = [];
-      for (const [name, at] of Object.entries({period:f.period, play:f.seq_play,
-          start:f.seq_start, stop:0x60ae23ba-0x10021020})) {
-        lab.observe(at, (_l,r) => {
-          if (report.copy_trace.length < 24) report.copy_trace.push({name,d0:r.d0,d1:r.d1,
-            a0:r.a0, param:Buffer.from(sim.read(r.a0,name==='play'?96:16)).toString('hex'),
-            player:Buffer.from(sim.read(0x62b43db8+128,12)).toString('hex')});
-        }, 'es-copy-'+name);
-      }
+    report.copy_trace = [];
+    for (const [name, at] of Object.entries({period:f.period, play:f.seq_play,
+        start:f.seq_start, stop:0x60ae23ba-0x10021020})) {
+      lab.observe(at, (_l,r) => {
+        if (report.copy_trace.length < 24) report.copy_trace.push({name,d0:r.d0,d1:r.d1,
+          a0:r.a0, param:Buffer.from(sim.read(r.a0,name==='play'?96:16)).toString('hex'),
+          player:Buffer.from(sim.read(0x62b43db8+128,12)).toString('hex')});
+      }, 'es-copy-'+name);
     }
-    const captureHooks = chooser.sound_menu === 'inline'
-      ? { save:chooser.symbols.es_menu_keys, capture_main:chooser.symbols.es_capture_main,
-          capture_fast:chooser.symbols.es_capture_fast, copy_done:chooser.symbols.es_copy_done }
-      : { save:chooser.symbols.es_save_choice,
-          ...(chooser.single_exposure?{exposure:chooser.symbols.es_exposure}:{}) };
     for(const [name,at] of Object.entries({
-      ...captureHooks, dispatch:chooser.symbols.es_dispatch,
+      save:chooser.symbols.es_menu_keys, capture_main:chooser.symbols.es_capture_main,
+      capture_fast:chooser.symbols.es_capture_fast, copy_done:chooser.symbols.es_copy_done,
+      dispatch:chooser.symbols.es_dispatch,
       resource:chooser.symbols.es_wave,flag:0x6004cd21,request:0x6017b9de,
       reply:0x6017be6c,flag_return:0x6004cd92,wake:0x6017b7a7,
       branch:0x6017b7b4,wait:0x6017b7a0,native_set:0x60035ee7,
@@ -167,33 +161,26 @@ try {
       if(lab.hooks.has(runtime(notation)))lab.wrap(notation,prev=>(h,r)=>{record(r);return prev(h,r);},'choice-'+name);
       else lab.observe(notation,(_l,r)=>record(r),'choice-'+name);
     }
-    let saveDriveFrame;
-    if(args.includes('--trace-drive') || chooser.sound_menu === 'inline') {
-      const {write_png}=await imp('checks/lib/png.mjs');
-      const {words_to_rgb}=await imp('src/lab/display.mjs');
-      saveDriveFrame=value=>{
-        const [width,height,pixels]=s.frame('now',false);
-        const name = typeof value === 'string' ? value : `drive-${value}`;
-        write_png(path.join(out,choiceDirectory,`${name}.png`),width,height,words_to_rgb(pixels));
-      };
-    }
-    let sdFiles;
-    if(chooser.sd_custom) {
-      replaySection1(chooser.wave_start,chooser.wave_end);
-      const prepared=name=>fs.readFileSync(path.join(out,'presets',name));
-      const optional=(name,fallback)=>fs.existsSync(path.join(out,'presets',name))?prepared(name):prepared(fallback);
-      const custom=prepared('canon5d-single.wav');
-      const exactLimit=Buffer.alloc(chooser.sd_max_bytes);
-      custom.copy(exactLimit);
-      exactLimit.writeUInt32LE(exactLimit.length-8,4);
-      exactLimit.writeUInt32LE(exactLimit.length-112,108);
-      sdFiles={
-        Ciallo:optional('ciallo-full.wav','canon5d-single.wav'),
-        Man:optional('man-full.wav','nikond850-single.wav'),
-        Custom:exactLimit,
-      };
-    }
-    report.checks=testChoice(pl,chooser,events,saveDriveFrame,sdFiles);
+    const {write_png}=await imp('checks/lib/png.mjs');
+    const {words_to_rgb}=await imp('src/lab/display.mjs');
+    const saveFrame=name=>{
+      const [width,height,pixels]=s.frame('now',false);
+      write_png(path.join(out,choiceDirectory,`${name}.png`),width,height,words_to_rgb(pixels));
+    };
+    replaySection1(chooser.wave_start,chooser.wave_end);
+    const prepared=name=>fs.readFileSync(path.join(out,'presets',name));
+    const optional=(name,fallback)=>fs.existsSync(path.join(out,'presets',name))?prepared(name):prepared(fallback);
+    const custom=prepared('canon5d-single.wav');
+    const exactLimit=Buffer.alloc(chooser.sd_max_bytes);
+    custom.copy(exactLimit);
+    exactLimit.writeUInt32LE(exactLimit.length-8,4);
+    exactLimit.writeUInt32LE(exactLimit.length-112,108);
+    const sdFiles={
+      Ciallo:optional('ciallo-full.wav','canon5d-single.wav'),
+      Man:optional('man-full.wav','nikond850-single.wav'),
+      Custom:exactLimit,
+    };
+    report.checks=testChoice(pl,chooser,events,saveFrame,sdFiles);
   } else {
     const traceEnabled=!process.argv.includes('--no-trace');
     report.trace_enabled=traceEnabled;

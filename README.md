@@ -44,7 +44,6 @@ py -3 build/extras.py all
 
 ```text
 build/                 manifest, build/test driver, packager, verifier
-menu_extension/        menu replays and earlier Setup launcher trial
 native/                camera assembly, assets, low-level build/setup
 shutter_sound/         native player, SD loader, format converter and audio replay
 tests/                native/emulator scripts and source-only checks

@@ -1,11 +1,11 @@
 # Repository organization
 
 The current release workflow starts at `build/extras.py`. It uses the
-manifest and the accepted r5 game payload, links the Setup page host in
-`menu_extension/`, and builds the native audio and SD-file loader in
-`shutter_sound/`. Tests and packaging use the final image's hash. See the
+manifest and the accepted r5 game image. The native ES sound row, audio hooks
+and SD-file loader live in `shutter_sound/`. Tests and packaging use the
+final image's hash. See the
 [developer workflow](DEVELOPMENT.md) and
-[Extras install guide](../shutter_sound/TRIAL_SD.md).
+[install guide](../shutter_sound/TRIAL_NATIVE.md).
 
 ## Earlier r5 reorganization
 
