@@ -1,11 +1,28 @@
-# OM-3 Extras
+# OM-3 Minigames
 
-Five native games and selectable electronic shutter sounds for the OM SYSTEM
-OM-3, firmware 1.1 (E147 build 1100), based on
-[Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) v0.26.2.
+Two features for the OM SYSTEM OM-3 (firmware 1.1, E147 build 1100), based on
+[Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) v0.26.2:
 
-The latest combined build, `8bf67c77473a`, was tested on a real OM-3.
-[Install or restore stock](shutter_sound/INSTALL.md) · [Camera test results](docs/STATUS.md)
+- **Games** — five native games with paused live-view display.
+- **ES sound** — selectable electronic-shutter sound on capture.
+
+The combined build `8bf67c77473a` was tested on a real OM-3.
+[Camera test results](docs/STATUS.md)
+
+## Quick install (no build needed)
+
+1. Download `artifacts/om3-extras-8bf67c77473a.zip`. Use the `-local` variant
+   instead if you want the supplied Ciallo and Man sounds included.
+2. Copy the **contents of `card/`** to the root of an SD card.
+3. With the camera **off**, hold **OK** while powering on until the updater
+   starts. Keep the battery and card in place until it finishes.
+4. Power off, delete `DCOLYMP/E1479999.BIN` from the card, keep `OM3MOD/`,
+   then boot normally.
+
+Games is now under **COLOR 1–4 → Picture Mode → Games**; ES sound is under
+**MENU → Setup → Information Record → ES sound**. To return to stock, copy
+`restore/DCOLYMP/E1479999.BIN` to the same card path and repeat the updater.
+Full steps, verification and rollback: [install guide](shutter_sound/INSTALL.md).
 
 ## Games
 
